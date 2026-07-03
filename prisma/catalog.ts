@@ -28,7 +28,7 @@ export const REGIONS: RegionSeed[] = [
     slug: "kavkaz",
     name: "Kavkaz",
     blurb: "Proud designs from the Caucasus — mountains, eagles and heritage.",
-    image: "/regions/kavkaz.png",
+    image: "/regions/kavkaz.webp",
     countries: [
       { slug: "abkhazia", name: "Abkhazia" },
       { slug: "armenia", name: "Armenia" },
@@ -44,7 +44,7 @@ export const REGIONS: RegionSeed[] = [
     slug: "europe",
     name: "Europe",
     blurb: "Flags and emblems from across Europe, reimagined for your phone.",
-    image: "/regions/europe.png",
+    image: "/regions/europe.webp",
     countries: [
       { slug: "italia", name: "Italy" },
       { slug: "turkey", name: "Turkey" },
@@ -58,14 +58,14 @@ export const REGIONS: RegionSeed[] = [
     slug: "balkan",
     name: "Balkan",
     blurb: "Balkan pride — bold colours and storied national symbols.",
-    image: "/regions/balkan.png",
+    image: "/regions/balkan.webp",
     countries: [{ slug: "albania", name: "Albania" }],
   },
   {
     slug: "asia",
     name: "Asia",
     blurb: "From the Levant to the Pacific — designs across Asia.",
-    image: "/regions/asia.png",
+    image: "/regions/asia.webp",
     countries: [
       { slug: "japan", name: "Japan" },
       { slug: "afghanistan", name: "Afghanistan" },
@@ -79,7 +79,7 @@ export const REGIONS: RegionSeed[] = [
     slug: "africa",
     name: "Africa",
     blurb: "Vibrant African heritage, crafted onto a case that lasts.",
-    image: "/regions/africa.png",
+    image: "/regions/africa.webp",
     countries: [
       { slug: "morocco", name: "Morocco" },
       { slug: "egypt", name: "Egypt" },
@@ -89,14 +89,14 @@ export const REGIONS: RegionSeed[] = [
     slug: "america",
     name: "America",
     blurb: "New designs for the Americas are on the way — coming soon.",
-    image: "/regions/america.png",
+    image: "/regions/america.webp",
     countries: [], // "still under development" on the source site
   },
 ];
 
 /** Local product image path for a country slug. */
 export function productImage(slug: string): string {
-  return `/products/${slug}.png`;
+  return `/products/${slug}.webp`;
 }
 
 export function productDescription(name: string): string {

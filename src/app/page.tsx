@@ -5,7 +5,7 @@ import { RegionCard } from "@/components/region-card";
 import { ProductCard } from "@/components/product-card";
 import { TrustBadges } from "@/components/trust-badges";
 import { CountrySearch } from "@/components/country-search";
-import { StoreJsonLd } from "@/components/seo/json-ld";
+import { StoreJsonLd, SiteJsonLd } from "@/components/seo/json-ld";
 
 // Server-rendered on every request => Googlebot always receives full HTML.
 export const dynamic = "force-dynamic";
@@ -16,6 +16,7 @@ export default async function HomePage() {
   return (
     <>
       <StoreJsonLd />
+      <SiteJsonLd />
 
       {/* Hero */}
       <section className="bg-brand text-white">

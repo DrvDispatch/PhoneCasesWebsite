@@ -13,6 +13,39 @@ function JsonLd({ data }: { data: Record<string, unknown> }) {
   );
 }
 
+/** Organization + WebSite (with sitelinks search) — brand entity for Google. */
+export function SiteJsonLd() {
+  const sameAs = SOCIAL_LINKS.filter((s) => s.href.startsWith("http")).map((s) => s.href);
+  return (
+    <>
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "Organization",
+          name: SITE.name,
+          url: SITE_URL,
+          logo: `${SITE_URL}/brand/hero.png`,
+          email: SITE.supportEmail,
+          sameAs,
+        }}
+      />
+      <JsonLd
+        data={{
+          "@context": "https://schema.org",
+          "@type": "WebSite",
+          name: SITE.name,
+          url: SITE_URL,
+          potentialAction: {
+            "@type": "SearchAction",
+            target: { "@type": "EntryPoint", urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
+            "query-input": "required name=search_term_string",
+          },
+        }}
+      />
+    </>
+  );
+}
+
 export function StoreJsonLd() {
   return (
     <JsonLd

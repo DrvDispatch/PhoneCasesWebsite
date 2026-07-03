@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type Result = { slug: string; name: string; regionName: string };
 
@@ -10,6 +11,7 @@ export function CountrySearch() {
   const [results, setResults] = useState<Result[]>([]);
   const [open, setOpen] = useState(false);
   const boxRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   useEffect(() => {
     const term = q.trim();
@@ -47,7 +49,14 @@ export function CountrySearch() {
 
   return (
     <div ref={boxRef} className="relative">
-      <div className="flex gap-2">
+      <form
+        className="flex gap-2"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const term = q.trim();
+          if (term) router.push(`/search?q=${encodeURIComponent(term)}`);
+        }}
+      >
         <label htmlFor="country-search" className="sr-only">
           Search for your country
         </label>
@@ -61,7 +70,7 @@ export function CountrySearch() {
           autoComplete="off"
           className="w-full rounded-xl border border-line px-4 py-3 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
         />
-      </div>
+      </form>
 
       {open && results.length > 0 && (
         <ul

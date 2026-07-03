@@ -8,6 +8,8 @@ const nextConfig = {
 
   images: {
     formats: ["image/avif", "image/webp"],
+    // Optimized images are immutable per URL — let Cloudflare/browsers cache a year.
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com" },
       { protocol: "https", hostname: "ucarecdn.com" },
@@ -35,6 +37,13 @@ const nextConfig = {
             key: "Strict-Transport-Security",
             value: "max-age=63072000; includeSubDomains; preload",
           },
+        ],
+      },
+      {
+        // Static, content-hashed-by-name assets — cache hard at the edge + browser.
+        source: "/:dir(products|regions|brand)/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
         ],
       },
     ];
