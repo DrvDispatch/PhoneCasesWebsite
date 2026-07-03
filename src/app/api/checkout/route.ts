@@ -88,7 +88,10 @@ export async function POST(req: Request) {
         product_data: {
           name: product.name,
           description: item.phoneModel ? `Device: ${item.phoneModel}` : undefined,
-          images: product.image ? [product.image] : undefined,
+          // Stripe requires absolute image URLs.
+          images: product.image
+            ? [product.image.startsWith("http") ? product.image : `${env.siteUrl}${product.image}`]
+            : undefined,
           metadata: { slug: product.slug },
         },
       },
