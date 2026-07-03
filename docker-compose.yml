@@ -1,0 +1,79 @@
+# ============================================================
+# GlobeCase — production stack for a single Ubuntu VPS
+# (Contabo / Hetzner). Usage:
+#   cp .env.example .env.production   # fill in real secrets
+#   docker compose up -d --build
+# Add the reverse proxy + TLS with the `proxy` profile:
+#   docker compose --profile proxy up -d --build
+# ============================================================
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-globecase}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-globecase}
+      POSTGRES_DB: ${POSTGRES_DB:-globecase}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-globecase}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    # Not published to the host — only reachable inside the compose network.
+    expose:
+      - "5432"
+
+  migrate:
+    build:
+      context: .
+      target: migrator
+    env_file: .env.production
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      target: runner
+    env_file: .env.production
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      NODE_ENV: production
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    # Publish directly only if you are NOT using the nginx proxy below.
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/robots.txt"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  nginx:
+    image: nginx:alpine
+    profiles: ["proxy"]
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./deploy/certbot/conf:/etc/letsencrypt:ro
+      - ./deploy/certbot/www:/var/www/certbot:ro
+
+volumes:
+  db-data:

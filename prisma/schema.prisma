@@ -1,0 +1,156 @@
+// GlobeCase — data model
+// PostgreSQL + Prisma. Money is stored in integer cents to avoid float error.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// A world region shown on the storefront (Kavkaz, Europe, ...).
+model Region {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  blurb     String?
+  image     String?
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  products  Product[]
+
+  @@index([sortOrder])
+}
+
+/// One product = one country's phone case (e.g. "Chechnya Phone Case").
+model Product {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  countryCode String? // ISO-ish tag for the country, optional
+  description String
+  /// Price in the smallest currency unit (cents). Default €20.00 = 2000.
+  priceCents  Int      @default(2000)
+  currency    String   @default("eur")
+  image       String?
+  gallery     String[] @default([])
+  /// null stock = made-to-order / unlimited. A number tracks inventory.
+  stock       Int?
+  active      Boolean  @default(true)
+  featured    Boolean  @default(false)
+  sortOrder   Int      @default(0)
+
+  regionId String
+  region   Region @relation(fields: [regionId], references: [id], onDelete: Cascade)
+
+  orderItems OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([regionId])
+  @@index([active, featured])
+  @@index([slug])
+}
+
+enum OrderStatus {
+  PENDING // checkout session created, not yet paid
+  PAID // payment confirmed via Stripe webhook
+  FULFILLED // shipped
+  CANCELLED
+  REFUNDED
+}
+
+/// A customer order, created from a Stripe Checkout session.
+model Order {
+  id              String      @id @default(cuid())
+  /// Human-friendly order number, e.g. GC-2CQ4X7.
+  number          String      @unique
+  status          OrderStatus @default(PENDING)
+  email           String?
+  customerName    String?
+  shippingAddress Json?
+  /// Snapshot totals (cents).
+  subtotalCents   Int         @default(0)
+  totalCents      Int         @default(0)
+  currency        String      @default("eur")
+
+  stripeSessionId       String? @unique
+  stripePaymentIntentId String?
+
+  items OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  paidAt    DateTime?
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([email])
+}
+
+/// A line in an order. Product fields are snapshotted so history is stable
+/// even if the product is later edited or deleted.
+model OrderItem {
+  id         String @id @default(cuid())
+  orderId    String
+  order      Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  name       String
+  slug       String
+  priceCents Int
+  quantity   Int    @default(1)
+  /// Free-text device the customer wants the case for (e.g. "iPhone 15 Pro").
+  phoneModel String?
+
+  @@index([orderId])
+}
+
+enum AdminRole {
+  OWNER
+  STAFF
+}
+
+/// Back-office user for the /admin panel.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String?
+  role         AdminRole @default(STAFF)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+/// First-party product reviews (in addition to the embedded social widget).
+model Review {
+  id          String   @id @default(cuid())
+  author      String
+  rating      Int // 1..5
+  body        String
+  productSlug String?
+  approved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([approved])
+}
+
+/// Append-only audit log for sensitive admin actions.
+model AuditLog {
+  id        String   @id @default(cuid())
+  actor     String
+  action    String
+  target    String?
+  meta      Json?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -1,0 +1,11 @@
+# Normalize line endings: store text as LF in the repo (clean checkouts on Linux/VPS).
+* text=auto eol=lf
+
+# Treat images and binaries as binary (never touch line endings).
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
+*.ico binary
+*.woff binary
+*.woff2 binary

@@ -1,0 +1,4 @@
+region,slug,name,description,price,image,stock,active,featured
+balkan,serbia,Serbia Phone Case,"Bold Serbian eagle design, printed edge to edge.",20,https://your-cdn.com/serbia.jpg,,true,true
+kavkaz,chechnya,Chechnya Phone Case,"Caucasus heritage, made to order for any device.",20,https://your-cdn.com/chechnya.jpg,,true,false
+asia,japan,Japan Phone Case,"Rising-sun inspired minimalist design.",22,https://your-cdn.com/japan.jpg,50,true,true
