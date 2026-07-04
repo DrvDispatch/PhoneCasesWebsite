@@ -27,8 +27,9 @@ RUN npm run build
 
 # ---- migrator: full toolchain to run `migrate deploy` + seed at deploy time ----
 FROM builder AS migrator
-# SEED_ON_DEPLOY=true (default) runs the idempotent seed after migrations.
-CMD ["sh", "-c", "npx prisma migrate deploy && ([ \"$SEED_ON_DEPLOY\" = \"false\" ] || npx prisma db seed)"]
+# Always applies migrations + the idempotent essentials seed (admin/pages/reviews);
+# the catalog re-sync inside is self-gated by SEED_ON_DEPLOY.
+CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed"]
 
 # ---- runner: tiny image that only serves the app ----
 FROM base AS runner
@@ -40,6 +41,9 @@ RUN addgroup --system --gid 1001 nodejs \
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+
+# Writable dir for admin image uploads (backed by a Docker volume).
+RUN mkdir -p /app/public/uploads && chown -R nextjs:nodejs /app/public/uploads
 
 USER nextjs
 EXPOSE 3000

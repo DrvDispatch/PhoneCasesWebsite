@@ -47,6 +47,9 @@ services:
       migrate:
         condition: service_completed_successfully
     restart: unless-stopped
+    # Persist admin image uploads across rebuilds.
+    volumes:
+      - uploads:/app/public/uploads
     # Bound to localhost only; the public entrypoint is Nginx (proxy profile).
     ports:
       - "127.0.0.1:3000:3000"
@@ -72,3 +75,4 @@ services:
 
 volumes:
   db-data:
+  uploads:

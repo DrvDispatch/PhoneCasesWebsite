@@ -30,10 +30,25 @@ export const productSchema = z.object({
   description: z.string().min(1).max(4000),
   priceCents: z.coerce.number().int().min(0).max(1_000_000),
   currency: z.string().min(3).max(4).default("eur"),
-  image: z.string().url().max(2000).optional().or(z.literal("")),
+  image: z
+    .string()
+    .max(2000)
+    .refine((v) => v === "" || v.startsWith("/") || /^https?:\/\//.test(v), "Must be a URL or /path")
+    .optional(),
   stock: z.coerce.number().int().min(0).max(1_000_000).optional().nullable(),
   active: z.coerce.boolean().default(true),
   featured: z.coerce.boolean().default(false),
+});
+
+export const pageSchema = z.object({
+  slug: z
+    .string()
+    .min(1)
+    .max(80)
+    .regex(/^[a-z0-9-]+$/, "Use lowercase letters, numbers and hyphens only"),
+  title: z.string().min(1).max(160),
+  body: z.string().min(1).max(50000),
+  published: z.coerce.boolean().default(true),
 });
 
 export const reviewSchema = z.object({

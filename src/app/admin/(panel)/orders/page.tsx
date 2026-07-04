@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
+import { AutoRefresh } from "./auto-refresh";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +14,10 @@ export default async function AdminOrdersPage() {
 
   return (
     <div>
-      <h1 className="font-display text-2xl">Orders ({orders.length})</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="font-display text-2xl">Orders ({orders.length})</h1>
+        <AutoRefresh />
+      </div>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">

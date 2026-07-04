@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
-import { updateOrderStatus } from "../actions";
+import { updateOrderStatus, fulfillOrder, resendConfirmation, saveOrderNote } from "../actions";
 import { OrderStatus } from "@prisma/client";
 
 export const dynamic = "force-dynamic";
@@ -95,6 +95,58 @@ export default async function OrderDetailPage({ params }: Params) {
             {order.stripePaymentIntentId && (
               <p className="mt-1 break-all text-xs text-ink-soft">PI: {order.stripePaymentIntentId}</p>
             )}
+          </section>
+
+          <section className="card p-5">
+            <h2 className="font-display text-lg">Fulfillment</h2>
+            <form action={fulfillOrder.bind(null, order.id)} className="mt-3 space-y-2 text-sm">
+              <input
+                name="carrier"
+                defaultValue={order.carrier ?? ""}
+                placeholder="Carrier (e.g. PostNL, DHL)"
+                className="w-full rounded-lg border border-line px-3 py-2"
+              />
+              <input
+                name="trackingNumber"
+                defaultValue={order.trackingNumber ?? ""}
+                placeholder="Tracking number"
+                className="w-full rounded-lg border border-line px-3 py-2"
+              />
+              <input
+                name="trackingUrl"
+                type="url"
+                defaultValue={order.trackingUrl ?? ""}
+                placeholder="Tracking URL (optional)"
+                className="w-full rounded-lg border border-line px-3 py-2"
+              />
+              <label className="flex items-center gap-2">
+                <input type="checkbox" name="notify" defaultChecked />
+                Email the customer that it shipped
+              </label>
+              <button className="btn btn-primary w-full">Save &amp; mark shipped</button>
+            </form>
+            {order.fulfilledAt && (
+              <p className="mt-2 text-xs text-ink-soft">
+                Shipped {order.fulfilledAt.toISOString().slice(0, 16).replace("T", " ")}
+              </p>
+            )}
+            <form action={resendConfirmation.bind(null, order.id)} className="mt-3">
+              <button className="text-sm text-accent underline">Resend confirmation email</button>
+            </form>
+          </section>
+
+          <section className="card p-5">
+            <h2 className="font-display text-lg">Internal note</h2>
+            <form action={saveOrderNote.bind(null, order.id)} className="mt-3 space-y-2">
+              <textarea
+                name="notes"
+                defaultValue={order.notes ?? ""}
+                rows={3}
+                placeholder="Private note (not shown to customer)"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
+              />
+              <button className="btn btn-outline w-full text-sm">Save note</button>
+            </form>
           </section>
         </aside>
       </div>

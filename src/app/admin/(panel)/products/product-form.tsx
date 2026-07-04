@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import type { ProductFormState } from "./actions";
 
 type RegionOption = { slug: string; name: string };
@@ -33,6 +33,28 @@ export function ProductForm({
   submitLabel: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [image, setImage] = useState(values.image ?? "");
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    setUploadError(null);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload", { method: "POST", body: fd });
+      const data = (await res.json()) as { url?: string; error?: string };
+      if (!res.ok || !data.url) setUploadError(data.error || "Upload failed");
+      else setImage(data.url);
+    } catch {
+      setUploadError("Upload failed");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
     <form action={formAction} className="max-w-2xl space-y-5">
@@ -82,10 +104,42 @@ export function ProductForm({
         </label>
       </div>
 
-      <label className="block text-sm font-medium">
-        Image URL
-        <input name="image" type="url" defaultValue={values.image ?? ""} placeholder="https://…" className={field} />
-      </label>
+      <div>
+        <span className="block text-sm font-medium">Product image</span>
+        <div className="mt-1 flex items-start gap-4">
+          {image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={image} alt="" className="h-24 w-24 flex-none rounded-lg border border-line object-cover" />
+          ) : (
+            <div className="grid h-24 w-24 flex-none place-items-center rounded-lg border border-dashed border-line text-center text-xs text-ink-soft">
+              No image
+            </div>
+          )}
+          <div className="flex-1 space-y-2">
+            <input
+              name="image"
+              type="text"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="/uploads/… or https://…"
+              className={field}
+            />
+            <div className="flex items-center gap-3">
+              <label className="btn btn-outline cursor-pointer text-sm">
+                {uploading ? "Uploading…" : "Upload image"}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={onUpload}
+                  disabled={uploading}
+                />
+              </label>
+              {uploadError && <span className="text-sm text-danger">{uploadError}</span>}
+            </div>
+          </div>
+        </div>
+      </div>
 
       <label className="block text-sm font-medium">
         Description

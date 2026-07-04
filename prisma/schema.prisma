@@ -81,11 +81,18 @@ model Order {
   stripeSessionId       String? @unique
   stripePaymentIntentId String?
 
+  // Fulfillment
+  carrier        String?
+  trackingNumber String?
+  trackingUrl    String?
+  notes          String?
+
   items OrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   paidAt    DateTime?
+  fulfilledAt DateTime?
 
   @@index([status])
   @@index([createdAt])
@@ -153,4 +160,22 @@ model AuditLog {
   createdAt DateTime @default(now())
 
   @@index([createdAt])
+}
+
+/// Editable content page (About, policies, custom) — a lightweight CMS.
+model Page {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  title     String
+  body      String // HTML
+  published Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Simple key/value store settings (owner email, shipping note, etc.).
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

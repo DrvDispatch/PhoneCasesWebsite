@@ -9,6 +9,7 @@
 import { PrismaClient, AdminRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { REGIONS, DEFAULT_PRICE_CENTS, productImage, productDescription } from "./catalog";
+import { PAGES } from "./pages";
 
 const prisma = new PrismaClient();
 
@@ -96,10 +97,25 @@ async function seedReviews() {
   console.log(`✓ ${REVIEWS.length} reviews ready`);
 }
 
+async function seedPages() {
+  for (const p of PAGES) {
+    // create-only: never clobber edits the owner makes in the admin CMS
+    await prisma.page.upsert({ where: { slug: p.slug }, update: {}, create: { ...p, published: true } });
+  }
+  console.log(`✓ ${PAGES.length} CMS pages ready`);
+}
+
 async function main() {
+  // Always safe/idempotent (upsert or create-only) — run every deploy.
   await seedAdmin();
-  await seedCatalog();
+  await seedPages();
   await seedReviews();
+  // Catalog re-sync can overwrite admin product edits, so gate it.
+  if (process.env.SEED_ON_DEPLOY !== "false") {
+    await seedCatalog();
+  } else {
+    console.log("↷ catalog re-sync skipped (SEED_ON_DEPLOY=false)");
+  }
 }
 
 main()

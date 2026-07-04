@@ -32,8 +32,22 @@ export const env = {
   defaultPriceCents: Number(optional("STORE_DEFAULT_PRICE_CENTS", "2000")),
   supportEmail: optional("STORE_SUPPORT_EMAIL", "globecase.mail@gmail.com"),
 
+  // --- Email (SMTP relay) ---
+  smtpHost: optional("SMTP_HOST"),
+  smtpPort: Number(optional("SMTP_PORT", "587")),
+  smtpUser: optional("SMTP_USER"),
+  smtpPass: optional("SMTP_PASS"),
+  smtpSecure: optional("SMTP_SECURE", "false") === "true",
+  mailFrom: optional("MAIL_FROM", "GlobeCase <orders@globe-case.com>"),
+  ownerEmail: optional("OWNER_EMAIL"),
+
   geminiApiKey: optional("GEMINI_API_KEY"),
 };
+
+/** True when SMTP relay credentials are present. */
+export function isEmailConfigured(): boolean {
+  return Boolean(env.smtpHost && env.smtpUser && env.smtpPass);
+}
 
 /** True when Stripe is configured with non-placeholder keys. */
 export function isStripeLive(): boolean {

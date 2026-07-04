@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import { getStripe, isStripeLive } from "@/lib/stripe";
 import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
+import { sendOrderEmails } from "@/lib/email";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,5 +93,20 @@ async function fulfillOrder(session: Stripe.Checkout.Session) {
   });
 
   logger.info({ orderId: order.id, number: order.number }, "order paid");
-  // TODO: send confirmation email here (Resend/SMTP) — hook point.
+
+  // Transactional emails: confirm to customer + alert the owner. Never throws.
+  await sendOrderEmails({
+    number: order.number,
+    email: session.customer_details?.email ?? order.email,
+    customerName: session.customer_details?.name ?? order.customerName,
+    currency: order.currency,
+    totalCents: session.amount_total ?? order.totalCents,
+    items: order.items.map((i) => ({
+      name: i.name,
+      phoneModel: i.phoneModel,
+      quantity: i.quantity,
+      priceCents: i.priceCents,
+    })),
+    shippingAddress: shipping,
+  });
 }
