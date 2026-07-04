@@ -35,6 +35,9 @@ CMD ["sh", "-c", "npx prisma migrate deploy && npx prisma db seed"]
 FROM base AS runner
 ENV NODE_ENV=production
 ENV PORT=3000
+# Bind to all interfaces so the in-container healthcheck (localhost:3000) passes.
+# Without this, Next standalone binds to the container hostname → healthcheck "unhealthy".
+ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs \
  && adduser --system --uid 1001 nextjs
 

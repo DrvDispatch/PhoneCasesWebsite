@@ -28,3 +28,8 @@ yarn-debug.log*
 yarn-error.log*
 /coverage
 /legacy/**/node_modules
+
+# Server access / handoff docs — SECRETS, never commit
+/SERVER_ACCESS.md
+*.local.md
+globecase_contabo*
