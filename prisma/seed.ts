@@ -14,7 +14,7 @@ import { PAGES } from "./pages";
 const prisma = new PrismaClient();
 
 async function seedAdmin() {
-  const email = (process.env.ADMIN_EMAIL || "admin@globecase.com").toLowerCase();
+  const email = (process.env.ADMIN_EMAIL || "admin@globe-case.com").toLowerCase();
   const password = process.env.ADMIN_PASSWORD || "ChangeMe!Admin123";
   const passwordHash = await bcrypt.hash(password, 12);
   await prisma.adminUser.upsert({

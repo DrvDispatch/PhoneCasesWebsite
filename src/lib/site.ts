@@ -5,7 +5,7 @@ export const SITE = {
   description:
     "Country & flag phone cases celebrating your heritage — designs across the Caucasus, Balkans, Europe, Asia, Africa and the Americas. Made to order for any iPhone or Android. Worldwide free shipping, 7-day returns, 5% donated to WWF & UNICEF.",
   locale: "en_IE",
-  supportEmail: "globecase.mail@gmail.com",
+  supportEmail: "support@globe-case.com",
   whatsapp: "https://wa.me/32488592446?text=Hi%20there%21%20I%E2%80%99m%20interested%20in%20one%20of%20your%20products",
 };
 
@@ -30,7 +30,7 @@ export const SOCIAL_LINKS = [
     name: "WhatsApp",
     href: "https://wa.me/32488592446?text=Hi%20there%21%20I%E2%80%99m%20interested%20in%20one%20of%20your%20products",
   },
-  { name: "Email", href: "mailto:globecase.mail@gmail.com" },
+  { name: "Email", href: `mailto:${SITE.supportEmail}` },
 ];
 
 export const TRUST_BADGES = [

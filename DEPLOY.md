@@ -11,8 +11,8 @@ Create an **Ubuntu 22.04/24.04** box (Contabo VPS S or Hetzner CX22 are both
 cheap and more than enough). Point your domain's DNS **A record** at its IP:
 
 ```
-globecase.com      A   <server-ip>
-www.globecase.com  A   <server-ip>
+globe-case.com      A   <server-ip>
+www.globe-case.com  A   <server-ip>
 ```
 
 ## 2. Install Docker
@@ -41,7 +41,7 @@ nano .env.production
 
 Set at minimum:
 
-- `NEXT_PUBLIC_SITE_URL=https://globecase.com`
+- `NEXT_PUBLIC_SITE_URL=https://globe-case.com`
 - `POSTGRES_PASSWORD` + the matching password inside `DATABASE_URL`
   (host stays `db`)
 - `AUTH_SECRET` → `openssl rand -base64 48`
@@ -67,7 +67,7 @@ At this point the store is live on port **3000**.
 
 ## 6. Add Nginx + HTTPS
 
-Edit `deploy/nginx.conf` and replace `globecase.com` with your domain, then
+Edit `deploy/nginx.conf` and replace `globe-case.com` with your domain, then
 bring up the proxy:
 
 ```bash
@@ -81,7 +81,7 @@ docker run --rm \
   -v $(pwd)/deploy/certbot/conf:/etc/letsencrypt \
   -v $(pwd)/deploy/certbot/www:/var/www/certbot \
   certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d globecase.com -d www.globecase.com \
+  -d globe-case.com -d www.globe-case.com \
   --email you@example.com --agree-tos --no-eff-email
 ```
 
@@ -107,7 +107,7 @@ Renewals (cron, e.g. weekly):
 In the Stripe dashboard add an endpoint:
 
 ```
-https://globecase.com/api/webhooks/stripe
+https://globe-case.com/api/webhooks/stripe
 ```
 
 Subscribe to `checkout.session.completed` and `checkout.session.expired`, copy

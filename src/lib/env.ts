@@ -30,7 +30,7 @@ export const env = {
 
   currency: optional("STORE_CURRENCY", "eur").toLowerCase(),
   defaultPriceCents: Number(optional("STORE_DEFAULT_PRICE_CENTS", "2000")),
-  supportEmail: optional("STORE_SUPPORT_EMAIL", "globecase.mail@gmail.com"),
+  supportEmail: optional("STORE_SUPPORT_EMAIL", "support@globe-case.com"),
 
   // --- Email (SMTP relay) ---
   smtpHost: optional("SMTP_HOST"),

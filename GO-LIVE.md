@@ -4,9 +4,9 @@ Everything needed to take the store from this folder to a live site accepting
 real payments. Written to be followed top‑to‑bottom, copy‑paste friendly, no
 prior DevOps experience assumed.
 
-**What you'll end up with:** `https://globecase.com` served by Nginx over HTTPS,
+**What you'll end up with:** `https://globe-case.com` served by Nginx over HTTPS,
 the Next.js app + PostgreSQL running in Docker, Stripe processing real payments,
-and an admin panel at `https://globecase.com/admin`.
+and an admin panel at `https://globe-case.com/admin`.
 
 ---
 
@@ -15,7 +15,7 @@ and an admin panel at `https://globecase.com/admin`.
 | Item | Where | Notes |
 |---|---|---|
 | A VPS | Contabo / Hetzner | Ubuntu 24.04, 2 vCPU / 4 GB RAM is plenty (~€5–7/mo) |
-| A domain | Namecheap / Cloudflare / etc. | e.g. `globecase.com` |
+| A domain | Namecheap / Cloudflare / etc. | e.g. `globe-case.com` |
 | Stripe account | https://stripe.com | Free; needs a bank account for payouts |
 | SSH access to the VPS | terminal | You get an IP + root password/key when you buy the VPS |
 | This project folder | your PC | `C:\Users\saidm\WebsiteForAlan` |
@@ -112,21 +112,21 @@ Fill in **every** value:
 
 | Variable | Set it to | Example |
 |---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | your real https domain, **no trailing slash** | `https://globecase.com` |
+| `NEXT_PUBLIC_SITE_URL` | your real https domain, **no trailing slash** | `https://globe-case.com` |
 | `NODE_ENV` | leave as | `production` |
 | `POSTGRES_USER` | leave as | `globecase` |
 | `POSTGRES_PASSWORD` | a generated secret | `k7Q…` |
 | `POSTGRES_DB` | leave as | `globecase` |
 | `DATABASE_URL` | **must contain the same password**, host stays `db` | `postgresql://globecase:k7Q…@db:5432/globecase?schema=public` |
 | `AUTH_SECRET` | a generated secret | `9v3…` |
-| `ADMIN_EMAIL` | your admin login email | `owner@globecase.com` |
+| `ADMIN_EMAIL` | your admin login email | `owner@globe-case.com` |
 | `ADMIN_PASSWORD` | a generated secret (this is how you log into /admin) | `Zx8…` |
 | `STRIPE_SECRET_KEY` | from Stripe (Part F) | `sk_live_…` |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | from Stripe (Part F) | `pk_live_…` |
 | `STRIPE_WEBHOOK_SECRET` | from Stripe (Part F) | `whsec_…` |
 | `STORE_CURRENCY` | leave as | `eur` |
 | `STORE_DEFAULT_PRICE_CENTS` | leave as (€20) | `2000` |
-| `STORE_SUPPORT_EMAIL` | your support inbox | `globecase.mail@gmail.com` |
+| `STORE_SUPPORT_EMAIL` | your public support inbox | `support@globe-case.com` |
 | `SEED_ON_DEPLOY` | `true` first deploy (loads the 23 products); set `false` after go‑live so it never re‑touches products | `true` |
 | `GEMINI_API_KEY` | leave blank | |
 
@@ -160,17 +160,18 @@ If `curl` returns 200, the store is running. It's not public yet — that's Part
 
 ## PART E — Domain + HTTPS
 
-### E1. Edit the Nginx config
+### E1. Check the Nginx config
 ```bash
 nano deploy/nginx.conf
 ```
-Replace every `globecase.com` with your real domain (there are a few). Save.
+It's already set for `globe-case.com` (server_name + cert paths). Only edit if you're
+deploying a different domain — replace every `globe-case.com` with it. Save.
 
 ### E2. Start the proxy
 ```bash
 docker compose --profile proxy up -d --build
 ```
-Your site is now reachable at `http://globecase.com` (plain HTTP). Confirm it
+Your site is now reachable at `http://globe-case.com` (plain HTTP). Confirm it
 loads in a browser before adding HTTPS.
 
 ### E3. Get a free SSL certificate (Let's Encrypt)
@@ -179,7 +180,7 @@ docker run --rm \
   -v $(pwd)/deploy/certbot/conf:/etc/letsencrypt \
   -v $(pwd)/deploy/certbot/www:/var/www/certbot \
   certbot/certbot certonly --webroot -w /var/www/certbot \
-  -d globecase.com -d www.globecase.com \
+  -d globe-case.com -d www.globe-case.com \
   --email you@example.com --agree-tos --no-eff-email
 ```
 
@@ -194,7 +195,7 @@ nano deploy/nginx.conf
 ```bash
 docker compose restart nginx
 ```
-Visit `https://globecase.com` — you should see the padlock. 🔒
+Visit `https://globe-case.com` — you should see the padlock. 🔒
 
 ### E5. Auto‑renew certificates (set and forget)
 ```bash
@@ -228,7 +229,7 @@ money). There's a toggle in the top‑right of the dashboard. Keys and webhooks 
 
 ### F4. Create the webhook (this is what marks orders "Paid")
 1. Dashboard → **Developers → Webhooks → Add endpoint**.
-2. **Endpoint URL:** `https://globecase.com/api/webhooks/stripe`
+2. **Endpoint URL:** `https://globe-case.com/api/webhooks/stripe`
 3. **Events to send** — click "Select events" and add:
    - `checkout.session.completed`
    - `checkout.session.expired`
@@ -252,10 +253,10 @@ future add‑on — see the hook in `src/app/api/webhooks/stripe/route.ts`.)
 
 ### F8. Rehearse a full test purchase (do this in Test mode first)
 1. Make sure `.env.production` has the **test** keys + **test** webhook secret, app restarted.
-2. Go to `https://globecase.com`, add a case to cart, click **Checkout securely**.
+2. Go to `https://globe-case.com`, add a case to cart, click **Checkout securely**.
 3. On Stripe's page use test card **`4242 4242 4242 4242`**, any future expiry, any CVC, any postcode.
 4. Complete → you land on the **Thank‑you** page with your order number.
-5. Check `https://globecase.com/admin → Orders`: the order should show **PAID**.
+5. Check `https://globe-case.com/admin → Orders`: the order should show **PAID**.
    - If it's stuck on PENDING, the webhook isn't reaching you — see Troubleshooting.
 
 ### F9. Go live
@@ -269,7 +270,7 @@ future add‑on — see the hook in `src/app/api/webhooks/stripe/route.ts`.)
 
 ## PART G — Running the store (admin)
 
-- **Log in:** `https://globecase.com/admin` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
+- **Log in:** `https://globe-case.com/admin` with `ADMIN_EMAIL` / `ADMIN_PASSWORD`.
 - **Dashboard:** revenue, paid orders, low‑stock, product counts.
 - **Products:** add/edit/delete, change price, image URL, description, mark
   active/featured, set stock (blank = unlimited / made‑to‑order).
@@ -328,7 +329,7 @@ crontab -e
 
 ## Pre‑launch checklist
 
-- [ ] DNS A records point to the server; `https://globecase.com` loads with a padlock
+- [ ] DNS A records point to the server; `https://globe-case.com` loads with a padlock
 - [ ] `.env.production` has **live** Stripe keys + **live** webhook secret
 - [ ] Strong `AUTH_SECRET`, `ADMIN_PASSWORD`, `POSTGRES_PASSWORD` (not the examples)
 - [ ] One real test purchase completed and refunded; order showed **PAID** in /admin

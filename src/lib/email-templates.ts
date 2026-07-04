@@ -1,7 +1,7 @@
 import { formatMoney } from "./money";
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || "https://globe-case.com").replace(/\/$/, "");
-const SUPPORT = process.env.STORE_SUPPORT_EMAIL || "globecase.mail@gmail.com";
+const SUPPORT = process.env.STORE_SUPPORT_EMAIL || "support@globe-case.com";
 
 const BRAND = "#1a3c34";
 const ACCENT = "#c8964e";
