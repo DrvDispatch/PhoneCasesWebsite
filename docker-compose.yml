@@ -54,7 +54,8 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/robots.txt"]
+      # Use 127.0.0.1 (not localhost): the app binds IPv4, but localhost may resolve to IPv6 ::1 first.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/robots.txt"]
       interval: 30s
       timeout: 5s
       retries: 5
