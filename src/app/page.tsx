@@ -138,6 +138,9 @@ export default async function HomePage() {
                 priceCents={p.priceCents}
                 currency={p.currency}
                 image={p.image}
+                imageFit={p.imageFit}
+                imageScale={p.imageScale}
+                imageBg={p.imageBg}
                 regionName={p.region.name}
               />
             ))}

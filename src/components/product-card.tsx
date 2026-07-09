@@ -1,6 +1,6 @@
 import Link from "next/link";
-import Image from "next/image";
 import { formatMoney } from "@/lib/money";
+import { ProductImage, type ImageAppearance } from "./product-image";
 
 type Props = {
   slug: string;
@@ -9,23 +9,31 @@ type Props = {
   currency: string;
   image?: string | null;
   regionName?: string;
-};
+} & ImageAppearance;
 
-export function ProductCard({ slug, name, priceCents, currency, image, regionName }: Props) {
+export function ProductCard({
+  slug,
+  name,
+  priceCents,
+  currency,
+  image,
+  regionName,
+  imageFit,
+  imageScale,
+  imageBg,
+}: Props) {
   return (
     <Link
       href={`/product/${slug}`}
       className="card group flex h-full flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-md"
     >
-      <div className="relative aspect-square overflow-hidden bg-surface-alt">
-        <Image
-          src={image || "/brand/hero.png"}
-          alt={name}
-          fill
-          sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-          className="object-contain p-3 transition duration-300 group-hover:scale-105"
-        />
-      </div>
+      <ProductImage
+        src={image}
+        alt={name}
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
+        boxClassName="aspect-square"
+        appearance={{ imageFit, imageScale, imageBg }}
+      />
       <div className="flex flex-1 flex-col p-4">
         {regionName && (
           <span className="text-xs uppercase tracking-wide text-ink-soft">{regionName}</span>

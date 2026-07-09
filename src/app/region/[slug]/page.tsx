@@ -67,6 +67,9 @@ export default async function RegionPage({ params }: Params) {
                 priceCents={p.priceCents}
                 currency={p.currency}
                 image={p.image}
+                imageFit={p.imageFit}
+                imageScale={p.imageScale}
+                imageBg={p.imageBg}
                 regionName={region.name}
               />
             ))}

@@ -40,6 +40,12 @@ model Product {
   gallery     String[] @default([])
   /// Selectable design options shown as thumbnails on the product page (#13).
   designImages String[] @default([])
+  /// How the main image is displayed: "contain" (whole image) or "cover" (fill/crop).
+  imageFit    String   @default("contain")
+  /// Perceived zoom of the main image, percent (50-160).
+  imageScale  Int      @default(100)
+  /// Background colour behind the image (for letterboxed "contain" mode).
+  imageBg     String   @default("#f7f8f9")
   /// null stock = made-to-order / unlimited. A number tracks inventory.
   stock       Int?
   active      Boolean  @default(true)

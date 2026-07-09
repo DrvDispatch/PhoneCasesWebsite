@@ -56,6 +56,9 @@ export default async function SearchPage({ searchParams }: Search) {
               priceCents={p.priceCents}
               currency={p.currency}
               image={p.image}
+              imageFit={p.imageFit}
+              imageScale={p.imageScale}
+              imageBg={p.imageBg}
               regionName={p.region.name}
             />
           ))}

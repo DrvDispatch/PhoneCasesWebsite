@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { getProductBySlug, getAllActiveProducts } from "@/lib/queries";
+import { ProductImage } from "@/components/product-image";
 import { formatMoney } from "@/lib/money";
 import { AddToCart } from "@/components/add-to-cart";
 import { RelatedProducts } from "@/components/related-products";
@@ -49,6 +49,9 @@ export default async function ProductPage({ params }: Params) {
       currency: p.currency,
       image: p.image,
       regionName: p.region.name,
+      imageFit: p.imageFit,
+      imageScale: p.imageScale,
+      imageBg: p.imageBg,
     }));
 
   return (
@@ -84,16 +87,14 @@ export default async function ProductPage({ params }: Params) {
         </nav>
 
         <div className="grid gap-10 md:grid-cols-2">
-          <div className="relative aspect-square overflow-hidden rounded-2xl border border-line bg-surface-alt">
-            <Image
-              src={product.image || "/brand/hero.png"}
-              alt={product.name}
-              fill
-              sizes="(max-width: 768px) 100vw, 560px"
-              priority
-              className="object-contain p-4"
-            />
-          </div>
+          <ProductImage
+            src={product.image}
+            alt={product.name}
+            sizes="(max-width: 768px) 100vw, 560px"
+            priority
+            boxClassName="aspect-square rounded-2xl border border-line"
+            appearance={product}
+          />
 
           <div>
             <span className="text-xs uppercase tracking-wide text-ink-soft">

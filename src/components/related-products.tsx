@@ -1,4 +1,5 @@
 import { ProductCard } from "./product-card";
+import type { ImageAppearance } from "./product-image";
 
 type Item = {
   id: string;
@@ -8,7 +9,7 @@ type Item = {
   currency: string;
   image?: string | null;
   regionName?: string;
-};
+} & ImageAppearance;
 
 /**
  * Horizontal, touch-friendly cross-sell slider (CSS scroll-snap, no JS).
@@ -45,6 +46,9 @@ export function RelatedProducts({
                 currency={p.currency}
                 image={p.image}
                 regionName={p.regionName}
+                imageFit={p.imageFit}
+                imageScale={p.imageScale}
+                imageBg={p.imageBg}
               />
             </div>
           ))}
