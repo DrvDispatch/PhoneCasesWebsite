@@ -42,7 +42,7 @@ export default async function ShopPage() {
 
       <section className="container-page py-12">
         <h2 className="mb-6 font-display text-2xl uppercase tracking-wide">Regions</h2>
-        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
           {regions.map((r) => (
             <RegionCard
               key={r.id}

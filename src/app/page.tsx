@@ -106,7 +106,7 @@ export default async function HomePage() {
             Six regions. Dozens of designs. One made for you.
           </p>
         </div>
-        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-5 lg:grid-cols-3">
           {regions.map((r) => (
             <RegionCard
               key={r.id}
