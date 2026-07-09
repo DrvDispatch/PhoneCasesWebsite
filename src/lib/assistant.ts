@@ -3,145 +3,92 @@ import { prisma } from "./db";
 import { formatMoney } from "./money";
 import type { GeminiTool, GeminiFunctionCall } from "./gemini";
 
-const MIN_PRICE = 100; // €1.00 — floor so the AI can't make things free / crazy-cheap
+const MIN_PRICE = 100; // €1.00 floor — can't make things free / crazy-cheap
 const MAX_PRICE = 1_000_000; // €10,000
 
-/** System prompt for the admin assistant. */
-export const ASSISTANT_SYSTEM = `You are the friendly AI assistant inside the GlobeCase shop admin panel. You help the shop owner manage their products using the available tools.
+/**
+ * System prompt. The model is the brain: it receives the full catalogue and is
+ * responsible for turning ANY phrasing into the exact product slugs (or all:true).
+ * The server never fuzzy-matches — it only validates the slugs and executes.
+ */
+export const ASSISTANT_SYSTEM = `You are the AI operations assistant inside the GlobeCase shop admin. You help the owner manage the store using tools.
 
-Rules:
-- Prices are always in CENTS (100 cents = €1). If the owner says euros, convert: "25 euro" -> 2500. Prices can't go below €1.
-- The "target" of a tool can be: a product's country/name (e.g. "Chechnya"), a slug (e.g. "chechnya"), a REGION name (e.g. "Europe" = all products in Europe), or "all".
-- Only call a tool when the owner asks to CHANGE something. For questions, answer briefly using the catalogue below.
-- Never invent a product; if it isn't listed, say so (unless the owner is creating a new one).
-- If a request is ambiguous, ask ONE short clarifying question instead of guessing.
-- When the owner refers to "this image" / "the uploaded one", use the attached image URL with set_image or create_product.
-- You can create and delete products; deleting the ENTIRE catalogue is blocked. Every change is backed up first and can be undone.
-- Be concise and warm. You never apply changes yourself — the owner reviews and confirms them with an Apply button.`;
+How targeting works — this is important:
+- The catalogue below lists EVERY product with its slug, region, price, stock and status.
+- YOU decide which products a request refers to and pass their exact "slugs". Work it out from anything: a name, nickname, misspelling, a whole region ("the Balkan ones"), a condition ("the cheapest", "anything hidden", "under €20", "everything except Japan"), or "all of them".
+- Pass "all": true to affect the whole catalogue. Never ask the owner for a slug — derive it yourself from the catalogue.
 
-const targetParam = {
-  type: "string",
-  description:
-    "What to target: a product country/name (e.g. 'Chechnya'), a slug (e.g. 'chechnya'), a REGION name (e.g. 'Europe' = all Europe products), or 'all'.",
+Other rules:
+- Prices are in CENTS (100 = €1). Convert euros. Prices can't go below €1.
+- For colours, output a hex value yourself (e.g. "navy" -> "#000080", "burgundy" -> "#800020").
+- Only call a tool when the owner wants to CHANGE something. For questions, answer briefly from the catalogue.
+- You can create and delete products; deleting the ENTIRE catalogue is blocked. Every change is backed up first and is undoable.
+- If something genuinely isn't supported yet (e.g. orders, analytics), say so in one short sentence. Be concise and warm. You never apply changes yourself — the owner reviews and presses Apply.`;
+
+const slugsParam = {
+  type: "array",
+  items: { type: "string" },
+  description: "Exact product slugs from the catalogue to affect. Omit and set all:true to affect every product.",
 };
+const allParam = { type: "boolean", description: "Set true to affect ALL products (ignore slugs)." };
 
 export const ASSISTANT_TOOLS: GeminiTool[] = [
   {
     functionDeclarations: [
       {
         name: "set_price",
-        description: "Set an absolute price for a product / region / all. price_cents in cents (2500 = €25.00).",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, price_cents: { type: "integer" } },
-          required: ["target", "price_cents"],
-        },
+        description: "Set an absolute price. price_cents in cents (2500 = €25.00).",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, price_cents: { type: "integer" } }, required: ["price_cents"] },
       },
       {
         name: "adjust_price",
-        description: "Change price by a relative amount for a product / region / all. Give either percent or amount_cents, and direction.",
-        parameters: {
-          type: "object",
-          properties: {
-            target: targetParam,
-            direction: { type: "string", description: "'increase' or 'decrease'" },
-            percent: { type: "integer" },
-            amount_cents: { type: "integer" },
-          },
-          required: ["target", "direction"],
-        },
+        description: "Change price relatively. Give percent OR amount_cents, plus direction ('increase'/'decrease').",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, direction: { type: "string" }, percent: { type: "integer" }, amount_cents: { type: "integer" } }, required: ["direction"] },
       },
       {
         name: "set_stock",
-        description: "Set stock count for a product / region / all. Pass unlimited=true for made-to-order.",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, stock: { type: "integer" }, unlimited: { type: "boolean" } },
-          required: ["target"],
-        },
+        description: "Set stock count. Pass unlimited:true for made-to-order.",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, stock: { type: "integer" }, unlimited: { type: "boolean" } }, required: [] },
       },
       {
         name: "set_visibility",
-        description: "Show or hide products (product / region / all). active=true shows them.",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, active: { type: "boolean" } },
-          required: ["target", "active"],
-        },
+        description: "Show (active:true) or hide products from the store.",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, active: { type: "boolean" } }, required: ["active"] },
       },
       {
         name: "set_featured",
-        description: "Mark products as featured/bestseller or not (product / region / all).",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, featured: { type: "boolean" } },
-          required: ["target", "featured"],
-        },
+        description: "Mark products as featured/bestseller or not.",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, featured: { type: "boolean" } }, required: ["featured"] },
       },
       {
         name: "create_product",
-        description: "Create a NEW product. country is the country/name; region is which region it belongs to.",
-        parameters: {
-          type: "object",
-          properties: {
-            country: { type: "string" },
-            region: { type: "string" },
-            price_cents: { type: "integer" },
-            image_url: { type: "string" },
-          },
-          required: ["country", "region"],
-        },
+        description: "Create a NEW product. country = its country/name; region_slug = the region's slug from the catalogue.",
+        parameters: { type: "object", properties: { country: { type: "string" }, region_slug: { type: "string" }, price_cents: { type: "integer" }, image_url: { type: "string" } }, required: ["country", "region_slug"] },
       },
       {
         name: "delete_product",
-        description: "Delete a product (or a named set / a region's products). Deleting ALL products is blocked.",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam },
-          required: ["target"],
-        },
+        description: "Delete products by their exact slugs. Deleting the whole catalogue is blocked.",
+        parameters: { type: "object", properties: { slugs: slugsParam }, required: ["slugs"] },
       },
       {
         name: "set_image",
-        description: "Set a product's MAIN photo to an uploaded image URL (from the owner's attachments).",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, image_url: { type: "string" } },
-          required: ["target", "image_url"],
-        },
+        description: "Set ONE product's main photo to an uploaded image URL (from the owner's attachments).",
+        parameters: { type: "object", properties: { slug: { type: "string" }, image_url: { type: "string" } }, required: ["slug", "image_url"] },
       },
       {
         name: "set_image_appearance",
-        description:
-          "Change how a product's image is displayed (product / region / all). fit: 'contain'/'cover'. scale_percent 50-160. background hex like '#ffffff'.",
-        parameters: {
-          type: "object",
-          properties: {
-            target: targetParam,
-            fit: { type: "string" },
-            scale_percent: { type: "integer" },
-            background: { type: "string" },
-          },
-          required: ["target"],
-        },
+        description: "Change how images display. fit:'contain'/'cover'. scale_percent 50-160. background is a hex colour.",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, fit: { type: "string" }, scale_percent: { type: "integer" }, background: { type: "string" } }, required: [] },
       },
       {
         name: "set_description",
-        description: "Set the description of a product, or of ALL products from a {country} template.",
-        parameters: {
-          type: "object",
-          properties: { target: targetParam, text: { type: "string" } },
-          required: ["target", "text"],
-        },
+        description: "Set product descriptions. Text may contain {country}, replaced with each product's country.",
+        parameters: { type: "object", properties: { slugs: slugsParam, all: allParam, text: { type: "string" } }, required: ["text"] },
       },
       {
         name: "create_promo_code",
         description: "Create a percentage discount code (percent_off 1-90).",
-        parameters: {
-          type: "object",
-          properties: { code: { type: "string" }, percent_off: { type: "integer" } },
-          required: ["code", "percent_off"],
-        },
+        parameters: { type: "object", properties: { code: { type: "string" }, percent_off: { type: "integer" } }, required: ["code", "percent_off"] },
       },
     ],
   },
@@ -171,14 +118,12 @@ function clampInt(v: unknown, min: number, max: number): number | null {
   const n = Math.round(Number(v));
   return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : null;
 }
-function cleanHex(v: unknown): string | null {
-  const s = String(v ?? "").trim().toLowerCase();
-  if (/^#?[0-9a-f]{6}$/.test(s) || /^#?[0-9a-f]{3}$/.test(s)) return s.startsWith("#") ? s : `#${s}`;
-  const names: Record<string, string> = {
-    white: "#ffffff", black: "#111827", grey: "#f7f8f9", gray: "#f7f8f9",
-    green: "#1a3c34", "dark green": "#0f2a23", cream: "#e8ded0",
-  };
-  return names[s] ?? null;
+/** Validate a hex colour (safety only — the model supplies the value). */
+function validHex(v: unknown): string | null {
+  const s = String(v ?? "").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(s)) return s.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(s)) return s.toLowerCase();
+  return null;
 }
 function money(cents: number): string {
   return formatMoney(cents, "eur");
@@ -189,162 +134,127 @@ function idList(v: unknown): string[] {
 function isImageUrl(url: string): boolean {
   return url.startsWith("/uploads/") || /^https?:\/\//.test(url);
 }
-function slugify(s: string): string {
+function toSlug(s: string): string {
   return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
 }
 
-type Resolved = {
-  all: boolean;
-  regionName?: string;
-  products: { id: string; slug: string; name: string }[];
-  error?: string;
-};
+type Scope = { ids: string[]; names: string[]; label: string; missing: string[]; error?: string };
 
-async function resolveTargets(target: string): Promise<Resolved> {
-  const t = (target || "").trim();
-  if (!t) return { all: false, products: [], error: "No product was specified." };
-  if (["all", "everything", "all products", "every product"].includes(t.toLowerCase())) {
-    const products = await prisma.product.findMany({ select: { id: true, slug: true, name: true } });
-    return { all: true, products };
+/** Resolve the model-chosen slugs (or all) to concrete products — EXACT match only. */
+async function resolveScope(a: Record<string, unknown>): Promise<Scope> {
+  if (a.all === true) {
+    const ps = await prisma.product.findMany({ select: { id: true, slug: true, name: true } });
+    return { ids: ps.map((p) => p.id), names: ps.map((p) => p.name), label: `all ${ps.length} products`, missing: [] };
   }
-  const bySlug = await prisma.product.findFirst({
-    where: { slug: t.toLowerCase() },
-    select: { id: true, slug: true, name: true },
-  });
-  if (bySlug) return { all: false, products: [bySlug] };
-
-  const term = t.replace(/\s*phone case\s*/i, "").trim();
-  const byName = await prisma.product.findMany({
-    where: { name: { contains: term, mode: "insensitive" } },
-    select: { id: true, slug: true, name: true },
-    take: 6,
-  });
-  if (byName.length === 1) return { all: false, products: byName };
-  if (byName.length > 1)
-    return { all: false, products: [], error: `“${t}” matches several products (${byName.map((p) => p.name).join(", ")}). Which one?` };
-
-  // Region name/slug -> all products in that region.
-  const region = await prisma.region.findFirst({
-    where: { OR: [{ slug: t.toLowerCase() }, { name: { equals: term, mode: "insensitive" } }] },
-    select: { id: true, name: true },
-  });
-  if (region) {
-    const products = await prisma.product.findMany({
-      where: { regionId: region.id },
-      select: { id: true, slug: true, name: true },
-    });
-    return { all: false, regionName: region.name, products };
-  }
-  return { all: false, products: [], error: `I couldn't find a product or region matching “${t}”.` };
+  const slugs = Array.isArray(a.slugs)
+    ? [...new Set(a.slugs.map((s) => String(s).toLowerCase().trim()).filter(Boolean))]
+    : [];
+  if (!slugs.length) return { ids: [], names: [], label: "", missing: [], error: "I couldn't tell which product(s) you meant — can you say which?" };
+  const ps = await prisma.product.findMany({ where: { slug: { in: slugs } }, select: { id: true, slug: true, name: true } });
+  const found = new Set(ps.map((p) => p.slug));
+  const missing = slugs.filter((s) => !found.has(s));
+  const label = ps.length === 1 ? ps[0].name : `${ps.length} products`;
+  return { ids: ps.map((p) => p.id), names: ps.map((p) => p.name), label, missing };
 }
 
-function scopeLabel(r: Resolved): string {
-  if (r.all) return `all ${r.products.length} products`;
-  if (r.regionName) return `all ${r.products.length} ${r.regionName} products`;
-  return r.products[0]?.name ?? "product";
+function missingNote(s: Scope): string {
+  return s.missing.length ? ` (couldn't find: ${s.missing.join(", ")})` : "";
 }
 
-async function resolveRegion(name: string): Promise<{ id: string; name: string } | null> {
-  const t = name.trim();
-  if (!t) return null;
-  return prisma.region.findFirst({
-    where: { OR: [{ slug: t.toLowerCase() }, { name: { equals: t, mode: "insensitive" } }] },
-    select: { id: true, name: true },
-  });
-}
-
-/** A compact snapshot of the catalogue for the model's context. */
+/** A compact snapshot of the catalogue + regions for the model's context. */
 export async function catalogContext(): Promise<string> {
-  const products = await prisma.product.findMany({
-    orderBy: [{ region: { sortOrder: "asc" } }, { name: "asc" }],
-    include: { region: true },
-  });
-  const regions = [...new Set(products.map((p) => p.region.name))];
+  const [regions, products] = await Promise.all([
+    prisma.region.findMany({ orderBy: { sortOrder: "asc" }, select: { name: true, slug: true } }),
+    prisma.product.findMany({ orderBy: [{ region: { sortOrder: "asc" } }, { name: "asc" }], include: { region: true } }),
+  ]);
+  const regLine = regions.map((r) => `${r.name}=${r.slug}`).join(", ");
   const lines = products.map(
     (p) =>
-      `- ${p.name} (slug: ${p.slug}, region: ${p.region.name}, price: ${money(p.priceCents)}, stock: ${p.stock == null ? "unlimited" : p.stock}, ${p.active ? "visible" : "hidden"}${p.featured ? ", featured" : ""})`,
+      `- ${p.name} — slug: ${p.slug}, region: ${p.region.name}, price: ${money(p.priceCents)}, stock: ${p.stock == null ? "unlimited" : p.stock}, ${p.active ? "visible" : "hidden"}${p.featured ? ", featured" : ""}`,
   );
-  return `Regions: ${regions.join(", ")}.\nCatalogue (${products.length} products):\n${lines.join("\n")}`;
+  return `Regions (name=slug): ${regLine}.\nCatalogue (${products.length} products):\n${lines.join("\n")}`;
 }
 
 /** Turn one Gemini function call into a validated, resolved, ready-to-apply action. */
 export async function planCall(fc: GeminiFunctionCall, attachments: string[]): Promise<PlanOutcome> {
   const a = fc.args || {};
-  const target = String(a.target ?? "");
 
   switch (fc.name) {
     case "set_price": {
       const cents = clampInt(a.price_cents, MIN_PRICE, MAX_PRICE);
       if (cents === null) return { note: "That price doesn't look valid (minimum €1)." };
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      return { action: { type: "set_prices", params: { ids: r.products.map((p) => p.id), price_cents: cents }, summary: `Set the price of ${scopeLabel(r)} to ${money(cents)}.` } };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
+      return { action: { type: "set_prices", params: { ids: s.ids, price_cents: cents }, summary: `Set the price of ${s.label} to ${money(cents)}${missingNote(s)}.` } };
     }
     case "adjust_price": {
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
       const dir = String(a.direction ?? "increase").toLowerCase() === "decrease" ? "decrease" : "increase";
       const percent = a.percent != null ? clampInt(a.percent, 1, 500) : null;
       const amount = a.amount_cents != null ? clampInt(a.amount_cents, 1, MAX_PRICE) : null;
       if (percent === null && amount === null) return { note: "By how much — a percentage or an amount?" };
       const by = percent != null ? `${percent}%` : money(amount!);
-      return { action: { type: "adjust_price", params: { ids: r.products.map((p) => p.id), direction: dir, percent, amount_cents: amount }, summary: `${dir === "increase" ? "Increase" : "Decrease"} the price of ${scopeLabel(r)} by ${by} (min €1).` } };
+      return { action: { type: "adjust_price", params: { ids: s.ids, direction: dir, percent, amount_cents: amount }, summary: `${dir === "increase" ? "Increase" : "Decrease"} the price of ${s.label} by ${by} (min €1).` } };
     }
     case "set_stock": {
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      const unlimited = a.unlimited === true || String(a.unlimited).toLowerCase() === "true";
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
+      const unlimited = a.unlimited === true;
       const stock = unlimited ? null : clampInt(a.stock, 0, 1_000_000);
       if (!unlimited && stock === null) return { note: "How many in stock? (or say unlimited)" };
-      return { action: { type: "set_stock", params: { ids: r.products.map((p) => p.id), stock }, summary: `Set stock of ${scopeLabel(r)} to ${unlimited ? "unlimited" : stock}.` } };
+      return { action: { type: "set_stock", params: { ids: s.ids, stock }, summary: `Set stock of ${s.label} to ${unlimited ? "unlimited" : stock}.` } };
     }
     case "set_visibility": {
-      const active = a.active === true || String(a.active).toLowerCase() === "true";
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      return { action: { type: "set_visibility", params: { ids: r.products.map((p) => p.id), active }, summary: `${active ? "Show" : "Hide"} ${scopeLabel(r)}.` } };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
+      const active = a.active === true;
+      return { action: { type: "set_visibility", params: { ids: s.ids, active }, summary: `${active ? "Show" : "Hide"} ${s.label}${missingNote(s)}.` } };
     }
     case "set_featured": {
-      const featured = a.featured === true || String(a.featured).toLowerCase() === "true";
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      return { action: { type: "set_featured", params: { ids: r.products.map((p) => p.id), featured }, summary: `${featured ? "Feature" : "Un-feature"} ${scopeLabel(r)}.` } };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
+      const featured = a.featured === true;
+      return { action: { type: "set_featured", params: { ids: s.ids, featured }, summary: `${featured ? "Feature" : "Un-feature"} ${s.label}${missingNote(s)}.` } };
     }
     case "create_product": {
       const country = String(a.country ?? "").trim();
       if (!country) return { note: "What country/name is the new product for?" };
-      const region = await resolveRegion(String(a.region ?? ""));
-      if (!region) return { note: `Which region should “${country}” go in? (Kavkaz, Europe, Balkan, Asia, Africa, America)` };
+      const region = await prisma.region.findUnique({ where: { slug: String(a.region_slug ?? "").toLowerCase() }, select: { id: true, name: true } });
+      if (!region) return { note: `Which region should “${country}” go in?` };
       const cents = a.price_cents != null ? clampInt(a.price_cents, MIN_PRICE, MAX_PRICE) : 2000;
-      const slug = slugify(country);
+      const slug = toSlug(country);
       if (!slug) return { note: "That name can't be used as a product." };
       if (await prisma.product.findUnique({ where: { slug } })) return { note: `A product “${country}” (${slug}) already exists.` };
       const url = String(a.image_url ?? "").trim();
       const image = isImageUrl(url) || attachments.includes(url) ? url : null;
-      return { action: { type: "create_product", params: { country, name: `${country} Phone Case`, slug, regionId: region.id, regionName: region.name, price_cents: cents, image }, summary: `Create “${country} Phone Case” in ${region.name} at ${money(cents!)}${image ? " with the uploaded photo" : ""}.` } };
+      return { action: { type: "create_product", params: { country, name: `${country} Phone Case`, slug, regionId: region.id, price_cents: cents, image }, summary: `Create “${country} Phone Case” in ${region.name} at ${money(cents!)}${image ? " with the uploaded photo" : ""}.` } };
     }
     case "delete_product": {
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
+      const s = await resolveScope({ slugs: a.slugs });
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products to delete${missingNote(s)}.` };
       const total = await prisma.product.count();
-      if (r.all || r.products.length >= total)
-        return { note: "I won't delete the whole catalogue — that's blocked. Name the specific product(s) to delete." };
-      if (!r.products.length) return { note: "Nothing matched to delete." };
-      const names = r.products.map((p) => p.name);
-      return { action: { type: "delete_products", params: { ids: r.products.map((p) => p.id), names }, summary: `Delete ${names.length === 1 ? names[0] : `${names.length} products (${names.join(", ")})`}. You can undo this from Backups.` } };
+      if (s.ids.length >= total) return { note: "I won't delete the whole catalogue — that's blocked. Name the specific product(s)." };
+      return { action: { type: "delete_products", params: { ids: s.ids, names: s.names }, summary: `Delete ${s.names.length === 1 ? s.names[0] : `${s.names.length} products (${s.names.join(", ")})`}. You can undo this from Backups.` } };
     }
     case "set_image": {
       const url = String(a.image_url ?? "").trim();
       if (!isImageUrl(url) && !attachments.includes(url))
         return { note: "Attach an image first, then tell me which product to use it for." };
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      if (r.all || r.regionName) return { note: "Setting one photo on many products is unusual — name a specific product." };
-      return { action: { type: "set_image", params: { ids: r.products.map((p) => p.id), image_url: url }, summary: `Set the main photo of ${r.products[0].name} to the uploaded image.` } };
+      const s = await resolveScope({ slugs: [String(a.slug ?? "")] });
+      if (!s.ids.length) return { note: `Couldn't find that product${missingNote(s)}.` };
+      return { action: { type: "set_image", params: { ids: [s.ids[0]], image_url: url }, summary: `Set the main photo of ${s.names[0]} to the uploaded image.` } };
     }
     case "set_image_appearance": {
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
       const data: Record<string, unknown> = {};
       const bits: string[] = [];
       if (a.fit != null) {
@@ -353,24 +263,23 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
         bits.push(`fit: ${f}`);
       }
       if (a.scale_percent != null) {
-        const s = clampInt(a.scale_percent, 50, 160);
-        if (s !== null) { data.imageScale = s; bits.push(`zoom: ${s}%`); }
+        const sc = clampInt(a.scale_percent, 50, 160);
+        if (sc !== null) { data.imageScale = sc; bits.push(`zoom: ${sc}%`); }
       }
       if (a.background != null) {
-        const bg = cleanHex(a.background);
+        const bg = validHex(a.background);
         if (bg) { data.imageBg = bg; bits.push(`background: ${bg}`); }
       }
       if (!Object.keys(data).length) return { note: "Tell me what to change: fit (contain/cover), zoom, or background colour." };
-      return { action: { type: "set_appearance", params: { ids: r.products.map((p) => p.id), data }, summary: `Change image display of ${scopeLabel(r)} (${bits.join(", ")}).` } };
+      return { action: { type: "set_appearance", params: { ids: s.ids, data }, summary: `Change image display of ${s.label} (${bits.join(", ")}).` } };
     }
     case "set_description": {
       const text = String(a.text ?? "").trim().slice(0, 4000);
       if (text.length < 3) return { note: "That description is too short." };
-      const r = await resolveTargets(target);
-      if (r.error) return { note: r.error };
-      if (r.all)
-        return { action: { type: "set_descriptions", params: { template: text }, summary: `Set the description of all ${r.products.length} products from a template.` } };
-      return { action: { type: "set_descriptions", params: { ids: r.products.map((p) => p.id), text }, summary: `Update the description of ${scopeLabel(r)}.` } };
+      const s = await resolveScope(a);
+      if (s.error) return { note: s.error };
+      if (!s.ids.length) return { note: `No matching products${missingNote(s)}.` };
+      return { action: { type: "set_descriptions", params: { ids: s.ids, text }, summary: `Update the description of ${s.label}${text.includes("{country}") ? " (per-country template)" : ""}.` } };
     }
     case "create_promo_code": {
       const code = String(a.code ?? "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -482,7 +391,7 @@ export async function executeAction(action: PlannedAction): Promise<{ ok: boolea
         if (s !== null) data.imageScale = s;
       }
       if (raw.imageBg != null) {
-        const bg = cleanHex(raw.imageBg);
+        const bg = validHex(raw.imageBg);
         if (bg) data.imageBg = bg;
       }
       if (!ids.length || !Object.keys(data).length) return { ok: false, message: "Nothing to change." };
@@ -490,23 +399,22 @@ export async function executeAction(action: PlannedAction): Promise<{ ok: boolea
       return { ok: true, message: `Updated image display of ${r.count} product(s).` };
     }
     case "set_descriptions": {
-      if (typeof action.params.template === "string") {
-        const template = action.params.template.slice(0, 4000);
-        const products = await prisma.product.findMany();
+      const ids = idList(action.params.ids);
+      const text = String(action.params.text ?? "").slice(0, 4000);
+      if (!ids.length || text.length < 3) return { ok: false, message: "Invalid description." };
+      if (text.includes("{country}") || text.includes("{name}")) {
+        const products = await prisma.product.findMany({ where: { id: { in: ids } } });
         let n = 0;
         for (const p of products) {
           const country = p.name.replace(/\s*Phone Case\s*$/i, "");
           await prisma.product.update({
             where: { id: p.id },
-            data: { description: template.replaceAll("{country}", country).replaceAll("{name}", p.name).slice(0, 4000) },
+            data: { description: text.replaceAll("{country}", country).replaceAll("{name}", p.name).slice(0, 4000) },
           });
           n++;
         }
         return { ok: true, message: `Updated the description of ${n} product(s).` };
       }
-      const ids = idList(action.params.ids);
-      const text = String(action.params.text ?? "").slice(0, 4000);
-      if (!ids.length || text.length < 3) return { ok: false, message: "Invalid description." };
       const r = await prisma.product.updateMany({ where: { id: { in: ids } }, data: { description: text } });
       return { ok: true, message: `Updated the description of ${r.count} product(s).` };
     }
