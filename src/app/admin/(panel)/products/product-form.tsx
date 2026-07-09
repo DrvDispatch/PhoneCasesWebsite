@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import type { ProductFormState } from "./actions";
 import { MultiImageField } from "@/components/admin/multi-image-field";
+import { Tip } from "@/components/admin/tip";
 
 type RegionOption = { slug: string; name: string };
 
@@ -84,6 +85,7 @@ export function ProductForm({
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block text-sm font-medium">
             Country / name
+            <Tip text="Type just the country (e.g. Chechnya). “Phone Case” is added automatically." />
             <div className="mt-1 flex items-stretch">
               <input
                 name="country"
@@ -100,6 +102,7 @@ export function ProductForm({
           </label>
           <label className="block text-sm font-medium">
             Slug (URL)
+            <Tip text="The web address for this product, e.g. “chechnya”. Lowercase letters, numbers and hyphens only." />
             <input
               name="slug"
               defaultValue={values.slug}
@@ -114,6 +117,7 @@ export function ProductForm({
         <div className="grid gap-4 sm:grid-cols-3">
           <label className="block text-sm font-medium">
             Region
+            <Tip text="Which region group this product is listed under (Kavkaz, Europe, …)." />
             <select name="regionSlug" defaultValue={values.regionSlug ?? regions[0]?.slug} className={field}>
               {regions.map((r) => (
                 <option key={r.slug} value={r.slug}>
@@ -124,6 +128,7 @@ export function ProductForm({
           </label>
           <label className="block text-sm font-medium">
             Price (cents)
+            <Tip text="Price in cents: 2000 = €20.00, 2500 = €25.00." />
             <input
               name="priceCents"
               type="number"
@@ -136,12 +141,16 @@ export function ProductForm({
           </label>
           <label className="block text-sm font-medium">
             Currency
+            <Tip text="Leave as “eur” unless you sell in another currency." />
             <input name="currency" defaultValue={values.currency ?? "eur"} className={field} />
           </label>
         </div>
 
         <div>
-          <span className="block text-sm font-medium">Main image</span>
+          <span className="block text-sm font-medium">
+            Main image
+            <Tip text="The product photo. Upload a file from your computer, or paste an image link." />
+          </span>
           <div className="mt-1 space-y-2">
             <input
               name="image"
@@ -163,11 +172,15 @@ export function ProductForm({
 
         {/* Appearance */}
         <div className="rounded-xl border border-line p-4">
-          <p className="text-sm font-medium">Image appearance</p>
+          <p className="text-sm font-medium">
+            Image appearance
+            <Tip text="Change how this product’s photo is displayed. Watch the live preview on the right update as you tweak it." />
+          </p>
           <p className="text-xs text-ink-soft">How this product&rsquo;s photo is shown — see the live preview.</p>
           <div className="mt-3 grid gap-4 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Fit
+              <Tip text="Contain = show the whole image (nothing cropped). Cover = fill the frame and crop the edges." />
               <select name="imageFit" value={fit} onChange={(e) => setFit(e.target.value)} className={field}>
                 <option value="contain">Contain — show the whole image</option>
                 <option value="cover">Cover — fill &amp; crop edges</option>
@@ -175,6 +188,7 @@ export function ProductForm({
             </label>
             <label className="block text-sm font-medium">
               Zoom <span className="font-normal text-ink-soft">({scale}%)</span>
+              <Tip text="Make the image look bigger or smaller inside its frame." />
               <input
                 name="imageScale"
                 type="range"
@@ -188,7 +202,10 @@ export function ProductForm({
             </label>
           </div>
           <div className="mt-3">
-            <span className="block text-sm font-medium">Background</span>
+            <span className="block text-sm font-medium">
+              Background
+              <Tip text="The colour shown behind the image — most useful with “Contain”. Tap a swatch or pick any colour." />
+            </span>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <input
                 name="imageBg"
@@ -230,22 +247,26 @@ export function ProductForm({
 
         <label className="block text-sm font-medium">
           Description
+          <Tip text="The text shown on the product page. Tip: use the “Bulk-edit all descriptions” tool to write one template for every product." />
           <textarea name="description" defaultValue={values.description} required rows={5} className={field} />
         </label>
 
         <label className="block text-sm font-medium">
           Stock (leave blank for unlimited / made-to-order)
+          <Tip text="Leave blank for made-to-order (unlimited). Enter a number only if you track physical stock." />
           <input name="stock" type="number" min={0} defaultValue={values.stock ?? ""} className={field} />
         </label>
 
-        <div className="flex gap-6">
+        <div className="flex flex-wrap gap-6">
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="active" defaultChecked={values.active ?? true} />
             Active (visible in store)
+            <Tip text="Untick to hide this product from the store without deleting it." />
           </label>
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="featured" defaultChecked={values.featured ?? false} />
             Featured (bestseller)
+            <Tip text="Featured products appear in the “Bestsellers” row on the home page." />
           </label>
         </div>
 
@@ -259,7 +280,10 @@ export function ProductForm({
       {/* ---------- Live preview ---------- */}
       <aside className="order-1 lg:order-2">
         <div className="space-y-4 rounded-2xl border border-line bg-surface p-4 lg:sticky lg:top-6">
-          <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">Live preview</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            Live preview
+            <Tip text="Exactly how customers will see this product. Updates instantly as you edit." />
+          </p>
 
           <div>
             <p className="mb-1 text-xs text-ink-soft">Shop card</p>
