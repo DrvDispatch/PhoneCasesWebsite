@@ -103,9 +103,8 @@ export function productDescription(name: string): string {
   return (
     `Wear your roots. The ${name} Phone Case is a premium, culturally inspired ` +
     `design celebrating ${name} — printed edge to edge on a slim, shock-absorbing ` +
-    `case. Made to order for any iPhone or Android model: just tell us your exact ` +
-    `device at checkout. Worldwide free shipping, 7-day returns, and 5% of every ` +
-    `order donated to WWF & UNICEF.`
+    `case. Made to order for any iPhone or Samsung model: just choose your exact ` +
+    `device at checkout. Worldwide free shipping and 7-day returns.`
   );
 }
 

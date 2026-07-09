@@ -160,3 +160,18 @@ ${itemsTable(order)}`;
     text: textFallback(order, `Your order ${order.number} status is now ${nice}.`),
   };
 }
+
+/** Welcome + 5%-off code for a new newsletter subscriber (#22). */
+export function subscribeWelcomeEmail(code: string, unsubUrl: string): RenderedEmail {
+  const body = `<h1 style="margin:0 0 6px;font-size:22px;color:${BRAND};">Welcome to GlobeCase 🎉</h1>
+<p style="margin:0 0 16px;color:#5a6570;">Thanks for subscribing! Here's <strong>5% off your first order</strong>:</p>
+<p style="margin:0 0 18px;text-align:center;"><span style="display:inline-block;border:2px dashed ${ACCENT};border-radius:10px;padding:12px 24px;font-size:22px;font-weight:700;letter-spacing:2px;color:${BRAND};">${esc(code)}</span></p>
+<p style="margin:0 0 22px;color:#5a6570;">Enter it in the cart at checkout. Worldwide free shipping and 7-day returns on every order.</p>
+<p style="text-align:center;">${btn(`${SITE_URL}/shop`, "Shop now")}</p>
+<p style="margin:24px 0 0;text-align:center;font-size:11px;color:#9aa4ad;"><a href="${unsubUrl}" style="color:#9aa4ad;">Unsubscribe</a></p>`;
+  return {
+    subject: "Your 5% GlobeCase code inside 🎁",
+    html: layout("Welcome to GlobeCase", "Your 5% off code is inside", body),
+    text: `Welcome to GlobeCase! Your 5% off code: ${code}\nShop: ${SITE_URL}/shop\nUnsubscribe: ${unsubUrl}`,
+  };
+}

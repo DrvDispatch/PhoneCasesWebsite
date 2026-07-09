@@ -7,6 +7,7 @@ import { CartProvider } from "@/components/cart/cart-context";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { NewsletterPopup } from "@/components/newsletter-popup";
 
 const oswald = Oswald({
   subsets: ["latin"],
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SiteFooter />
           <CartDrawer />
         </CartProvider>
+        <NewsletterPopup />
       </body>
     </html>
   );

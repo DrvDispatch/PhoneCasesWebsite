@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Script from "next/script";
 import { getApprovedReviews } from "@/lib/queries";
+import { getSetting, SETTING_KEYS } from "@/lib/settings";
+import { IconMapPin } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -20,13 +22,26 @@ function Stars({ n }: { n: number }) {
 }
 
 export default async function ReviewsPage() {
-  const reviews = await getApprovedReviews();
+  const [reviews, mapsUrl] = await Promise.all([
+    getApprovedReviews(),
+    getSetting(SETTING_KEYS.googleMapsUrl),
+  ]);
 
   return (
     <div className="container-page py-14">
       <div className="text-center">
-        <h1 className="font-display text-4xl uppercase tracking-wide">Customer Reviews</h1>
+        <h1 className="font-display text-3xl uppercase tracking-wide sm:text-4xl">Customer Reviews</h1>
         <p className="mt-2 text-ink-soft">Real feedback from GlobeCase customers worldwide.</p>
+        {mapsUrl && (
+          <a
+            href={mapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-outline mt-5 inline-flex text-sm"
+          >
+            <IconMapPin className="h-4 w-4 text-accent" /> See us on Google
+          </a>
+        )}
       </div>
 
       {reviews.length > 0 && (
@@ -35,6 +50,14 @@ export default async function ReviewsPage() {
             <figure key={r.id} className="card p-5">
               <Stars n={r.rating} />
               <blockquote className="mt-2 text-ink">{r.body}</blockquote>
+              {r.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={r.imageUrl}
+                  alt=""
+                  className="mt-3 h-40 w-full rounded-lg border border-line object-cover"
+                />
+              )}
               <figcaption className="mt-3 text-sm text-ink-soft">— {r.author}</figcaption>
             </figure>
           ))}

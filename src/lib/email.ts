@@ -7,6 +7,7 @@ import {
   newOrderAlertEmail,
   orderShippedEmail,
   orderStatusEmail,
+  subscribeWelcomeEmail,
   type EmailOrder,
 } from "./email-templates";
 
@@ -76,4 +77,10 @@ export async function sendOrderStatusEmail(order: EmailOrder, status: string): P
   const rendered =
     status === "FULFILLED" ? orderShippedEmail(order) : orderStatusEmail(order, status);
   await sendMail({ to: order.email, subject: rendered.subject, html: rendered.html, text: rendered.text });
+}
+
+/** Welcome email with the 5%-off code for a new subscriber (#22). Never throws. */
+export async function sendSubscribeWelcome(to: string, code: string, unsubUrl: string): Promise<void> {
+  const e = subscribeWelcomeEmail(code, unsubUrl);
+  await sendMail({ to, subject: e.subject, html: e.html, text: e.text });
 }

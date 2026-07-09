@@ -91,3 +91,22 @@ export async function getSitemapEntries() {
   ]);
   return { regions, products };
 }
+
+/** Aggregate approved-review stats for the home strip (#21). */
+export async function getReviewStats(): Promise<{ count: number; average: number }> {
+  const [count, agg] = await Promise.all([
+    prisma.review.count({ where: { approved: true } }),
+    prisma.review.aggregate({ where: { approved: true }, _avg: { rating: true } }),
+  ]);
+  return { count, average: agg._avg.rating ?? 5 };
+}
+
+/** Approved reviews that have a photo, for the home strip (#21). */
+export function getReviewPhotos(take = 5) {
+  return prisma.review.findMany({
+    where: { approved: true, imageUrl: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take,
+    select: { id: true, imageUrl: true, author: true },
+  });
+}

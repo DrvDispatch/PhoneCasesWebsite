@@ -1,9 +1,11 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getRegions, getFeaturedProducts } from "@/lib/queries";
+import { getRegions, getFeaturedProducts, getReviewStats, getReviewPhotos } from "@/lib/queries";
+import { getSettings, SETTING_KEYS, parseUrlList } from "@/lib/settings";
 import { RegionCard } from "@/components/region-card";
 import { ProductCard } from "@/components/product-card";
 import { TrustBadges } from "@/components/trust-badges";
+import { HomeReviews } from "@/components/home-reviews";
 import { CountrySearch } from "@/components/country-search";
 import { StoreJsonLd, SiteJsonLd } from "@/components/seo/json-ld";
 
@@ -11,7 +13,19 @@ import { StoreJsonLd, SiteJsonLd } from "@/components/seo/json-ld";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [regions, featured] = await Promise.all([getRegions(), getFeaturedProducts(8)]);
+  const [regions, featured, reviewStats, reviewPhotos, settings] = await Promise.all([
+    getRegions(),
+    getFeaturedProducts(8),
+    getReviewStats(),
+    getReviewPhotos(5),
+    getSettings([SETTING_KEYS.homeReviewPhotos, SETTING_KEYS.googleMapsUrl]),
+  ]);
+
+  const settingPhotos = parseUrlList(settings[SETTING_KEYS.homeReviewPhotos]);
+  const reviewImages = settingPhotos.length
+    ? settingPhotos
+    : reviewPhotos.map((r) => r.imageUrl).filter((u): u is string => Boolean(u));
+  const mapsUrl = settings[SETTING_KEYS.googleMapsUrl] || null;
 
   return (
     <>
@@ -61,7 +75,15 @@ export default async function HomePage() {
 
       <TrustBadges />
 
-      {/* Country search — moved up so it's the first thing after the badges */}
+      {/* Review strip — below the badges, above the search (#21) */}
+      <HomeReviews
+        count={reviewStats.count}
+        average={reviewStats.average}
+        photos={reviewImages}
+        mapsUrl={mapsUrl}
+      />
+
+      {/* Country search — near the top so it's easy to find */}
       <section className="bg-surface-alt py-10 sm:py-14">
         <div className="container-page max-w-2xl text-center">
           <h2 className="font-display text-2xl uppercase tracking-wide">Find your country</h2>
