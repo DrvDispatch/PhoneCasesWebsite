@@ -90,6 +90,14 @@ async function fulfillOrder(session: Stripe.Checkout.Session) {
         data: { stock: { decrement: item.quantity } },
       });
     }
+
+    // Count a promo redemption only once payment is confirmed.
+    if (order.promoCode) {
+      await tx.promoCode.updateMany({
+        where: { code: order.promoCode },
+        data: { timesRedeemed: { increment: 1 } },
+      });
+    }
   });
 
   logger.info({ orderId: order.id, number: order.number }, "order paid");
@@ -103,7 +111,7 @@ async function fulfillOrder(session: Stripe.Checkout.Session) {
     totalCents: session.amount_total ?? order.totalCents,
     items: order.items.map((i) => ({
       name: i.name,
-      phoneModel: i.phoneModel,
+      phoneModel: [i.designChoice, i.phoneModel].filter(Boolean).join(" · ") || i.phoneModel,
       quantity: i.quantity,
       priceCents: i.priceCents,
     })),

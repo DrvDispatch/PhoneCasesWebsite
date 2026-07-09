@@ -8,7 +8,7 @@ import { AddToCart } from "@/components/add-to-cart";
 import { RelatedProducts } from "@/components/related-products";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 import { TRUST_BADGES } from "@/lib/site";
-import { TRUST_ICONS } from "@/components/icons";
+import { TRUST_ICONS, IconTag } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -115,10 +115,20 @@ export default async function ProductPage({ params }: Params) {
                     currency: product.currency,
                     image: product.image,
                   }}
+                  designImages={product.designImages}
                 />
               ) : (
                 <p className="text-danger">Currently sold out — check back soon.</p>
               )}
+            </div>
+
+            {/* Buy 2 get 1 free (#17) — below the choices/qty, above the badges */}
+            <div className="mt-4 flex items-center gap-2 rounded-xl bg-brand/5 px-4 py-3 text-sm font-medium text-brand">
+              <IconTag className="h-5 w-5 shrink-0 text-accent" />
+              <span>
+                <strong>Buy 2, get 1 free</strong> — mix &amp; match any designs. Your cheapest case is
+                free at checkout.
+              </span>
             </div>
 
             <ul className="mt-6 grid grid-cols-3 gap-3 text-center text-xs sm:text-sm">

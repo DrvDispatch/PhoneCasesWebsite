@@ -18,33 +18,34 @@ export type CartItem = {
   image?: string | null;
   quantity: number;
   phoneModel: string;
+  phoneBrand?: string;
+  designChoice?: string;
 };
+
+/** Stable identity for a line: same product + device + chosen design merge. */
+export function lineKey(i: Pick<CartItem, "slug" | "phoneModel" | "designChoice">) {
+  return [i.slug, i.phoneModel, i.designChoice ?? ""].join("|");
+}
 
 type State = { items: CartItem[] };
 
 type Action =
   | { type: "hydrate"; items: CartItem[] }
   | { type: "add"; item: CartItem }
-  | { type: "remove"; slug: string; phoneModel: string }
-  | { type: "qty"; slug: string; phoneModel: string; quantity: number }
+  | { type: "remove"; key: string }
+  | { type: "qty"; key: string; quantity: number }
   | { type: "clear" };
 
 const STORAGE_KEY = "globecase.cart.v1";
 const MAX_QTY = 20;
-
-/** Two lines merge only when both the product AND the device match. */
-function sameLine(a: CartItem, slug: string, phoneModel: string) {
-  return a.slug === slug && a.phoneModel === phoneModel;
-}
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case "hydrate":
       return { items: action.items };
     case "add": {
-      const idx = state.items.findIndex((i) =>
-        sameLine(i, action.item.slug, action.item.phoneModel),
-      );
+      const key = lineKey(action.item);
+      const idx = state.items.findIndex((i) => lineKey(i) === key);
       if (idx >= 0) {
         const items = [...state.items];
         items[idx] = {
@@ -56,13 +57,11 @@ function reducer(state: State, action: Action): State {
       return { items: [...state.items, action.item] };
     }
     case "remove":
-      return {
-        items: state.items.filter((i) => !sameLine(i, action.slug, action.phoneModel)),
-      };
+      return { items: state.items.filter((i) => lineKey(i) !== action.key) };
     case "qty":
       return {
         items: state.items.map((i) =>
-          sameLine(i, action.slug, action.phoneModel)
+          lineKey(i) === action.key
             ? { ...i, quantity: Math.max(1, Math.min(MAX_QTY, action.quantity)) }
             : i,
         ),
@@ -83,8 +82,8 @@ type CartContextValue = {
   open: () => void;
   close: () => void;
   add: (item: CartItem) => void;
-  remove: (slug: string, phoneModel: string) => void;
-  setQuantity: (slug: string, phoneModel: string, quantity: number) => void;
+  remove: (key: string) => void;
+  setQuantity: (key: string, quantity: number) => void;
   clear: () => void;
 };
 
@@ -134,9 +133,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         dispatch({ type: "add", item });
         setIsOpen(true);
       },
-      remove: (slug, phoneModel) => dispatch({ type: "remove", slug, phoneModel }),
-      setQuantity: (slug, phoneModel, quantity) =>
-        dispatch({ type: "qty", slug, phoneModel, quantity }),
+      remove: (key) => dispatch({ type: "remove", key }),
+      setQuantity: (key, quantity) => dispatch({ type: "qty", key, quantity }),
       clear: () => dispatch({ type: "clear" }),
     };
   }, [state.items, isOpen]);

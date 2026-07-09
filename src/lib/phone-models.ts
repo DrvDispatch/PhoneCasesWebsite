@@ -1,0 +1,65 @@
+/**
+ * Limited phone-model catalogue for the two-step brand -> model selector (#18).
+ * The client only stocks Apple + Samsung for now; extend here as supply grows.
+ */
+export type PhoneBrand = { brand: string; models: string[] };
+
+export const PHONE_BRANDS: PhoneBrand[] = [
+  {
+    brand: "Apple",
+    models: [
+      "iPhone 16 Pro Max",
+      "iPhone 16 Pro",
+      "iPhone 16 Plus",
+      "iPhone 16",
+      "iPhone 15 Pro Max",
+      "iPhone 15 Pro",
+      "iPhone 15 Plus",
+      "iPhone 15",
+      "iPhone 14 Pro Max",
+      "iPhone 14 Pro",
+      "iPhone 14 Plus",
+      "iPhone 14",
+      "iPhone 13 Pro Max",
+      "iPhone 13 Pro",
+      "iPhone 13",
+      "iPhone 13 mini",
+      "iPhone 12 Pro Max",
+      "iPhone 12 Pro",
+      "iPhone 12",
+      "iPhone 12 mini",
+      "iPhone 11 Pro Max",
+      "iPhone 11 Pro",
+      "iPhone 11",
+      "iPhone SE (2022)",
+      "iPhone SE (2020)",
+    ],
+  },
+  {
+    brand: "Samsung",
+    models: [
+      "Galaxy S24 Ultra",
+      "Galaxy S24+",
+      "Galaxy S24",
+      "Galaxy S23 Ultra",
+      "Galaxy S23+",
+      "Galaxy S23",
+      "Galaxy S22 Ultra",
+      "Galaxy S22+",
+      "Galaxy S22",
+      "Galaxy S21 Ultra",
+      "Galaxy S21+",
+      "Galaxy S21",
+      "Galaxy A55",
+      "Galaxy A54",
+      "Galaxy A35",
+      "Galaxy A34",
+      "Galaxy A15",
+      "Galaxy A14",
+      "Galaxy Note 20 Ultra",
+      "Galaxy Note 20",
+      "Galaxy Z Flip 5",
+      "Galaxy Z Fold 5",
+    ],
+  },
+];

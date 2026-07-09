@@ -7,6 +7,8 @@ import { generateOrderNumber } from "@/lib/audit";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
 import { env } from "@/lib/env";
+import { bogoFreeCents, promoDiscountCents } from "@/lib/discounts";
+import { findValidPromo } from "@/lib/promo";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,7 +60,10 @@ export async function POST(req: Request) {
     priceCents: number;
     quantity: number;
     phoneModel: string;
+    phoneBrand: string;
+    designChoice: string;
   }[] = [];
+  const bogoItems: { priceCents: number; quantity: number }[] = [];
   let subtotal = 0;
   let currency = env.currency;
 
@@ -72,6 +77,9 @@ export async function POST(req: Request) {
     }
     currency = product.currency;
     subtotal += product.priceCents * item.quantity;
+    bogoItems.push({ priceCents: product.priceCents, quantity: item.quantity });
+
+    const detail = [item.designChoice, item.phoneModel].filter(Boolean).join(" · ");
     orderItemsData.push({
       productId: product.id,
       name: product.name,
@@ -79,6 +87,8 @@ export async function POST(req: Request) {
       priceCents: product.priceCents,
       quantity: item.quantity,
       phoneModel: item.phoneModel || "",
+      phoneBrand: item.phoneBrand || "",
+      designChoice: item.designChoice || "",
     });
     lineItems.push({
       quantity: item.quantity,
@@ -87,7 +97,7 @@ export async function POST(req: Request) {
         unit_amount: product.priceCents,
         product_data: {
           name: product.name,
-          description: item.phoneModel ? `Device: ${item.phoneModel}` : undefined,
+          description: detail || undefined,
           // Stripe requires absolute image URLs.
           images: product.image
             ? [product.image.startsWith("http") ? product.image : `${env.siteUrl}${product.image}`]
@@ -96,6 +106,22 @@ export async function POST(req: Request) {
         },
       },
     });
+  }
+
+  // --- Discounts (handled on our side, then applied as a Stripe coupon) ---
+  const bogoFree = bogoFreeCents(bogoItems);
+  let promoDisc = 0;
+  let appliedCode: string | null = null;
+  if (parsed.data.promoCode) {
+    const res = await findValidPromo(parsed.data.promoCode, subtotal);
+    if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+    promoDisc = promoDiscountCents({ kind: res.promo.kind, value: res.promo.value }, subtotal - bogoFree);
+    appliedCode = res.promo.code;
+  }
+  const totalDiscount = Math.min(subtotal, bogoFree + promoDisc);
+  const total = subtotal - totalDiscount;
+  if (total < 50) {
+    return NextResponse.json({ error: "That discount is too large for this order." }, { status: 400 });
   }
 
   try {
@@ -108,7 +134,9 @@ export async function POST(req: Request) {
             number: generateOrderNumber(),
             status: "PENDING",
             subtotalCents: subtotal,
-            totalCents: subtotal, // free shipping
+            discountCents: totalDiscount,
+            totalCents: total, // free shipping
+            promoCode: appliedCode,
             currency,
             items: { create: orderItemsData },
           },
@@ -121,6 +149,23 @@ export async function POST(req: Request) {
     if (!order) throw new Error("Could not create order");
 
     const stripe = getStripe();
+
+    // A computed discount (BOGO and/or promo) can't be a negative line item, so
+    // it's applied as a one-off coupon. Stripe forbids combining `discounts`
+    // with `allow_promotion_codes`, so we only offer the native promo box when
+    // there is no computed discount.
+    let discounts: Stripe.Checkout.SessionCreateParams.Discount[] | undefined;
+    if (totalDiscount > 0) {
+      const coupon = await stripe.coupons.create({
+        amount_off: totalDiscount,
+        currency,
+        duration: "once",
+        name: appliedCode ? `Code ${appliedCode}` : "Buy 2 get 1 free",
+        max_redemptions: 1,
+      });
+      discounts = [{ coupon: coupon.id }];
+    }
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       line_items: lineItems,
@@ -128,7 +173,7 @@ export async function POST(req: Request) {
       cancel_url: `${env.siteUrl}/checkout/cancel`,
       shipping_address_collection: { allowed_countries: SHIPPING_COUNTRIES },
       phone_number_collection: { enabled: true },
-      allow_promotion_codes: true,
+      ...(discounts ? { discounts } : { allow_promotion_codes: true }),
       billing_address_collection: "auto",
       client_reference_id: order.id,
       metadata: { orderId: order.id, orderNumber: order.number },
@@ -139,7 +184,10 @@ export async function POST(req: Request) {
       data: { stripeSessionId: session.id },
     });
 
-    logger.info({ orderId: order.id, number: order.number, amount: subtotal }, "checkout session created");
+    logger.info(
+      { orderId: order.id, number: order.number, subtotal, discount: totalDiscount, total },
+      "checkout session created",
+    );
     return NextResponse.json({ url: session.url });
   } catch (err) {
     logger.error({ err }, "checkout failed");

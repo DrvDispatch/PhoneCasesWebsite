@@ -36,7 +36,10 @@ model Product {
   priceCents  Int      @default(2000)
   currency    String   @default("eur")
   image       String?
+  /// Extra product photos for the gallery/carousel (#6).
   gallery     String[] @default([])
+  /// Selectable design options shown as thumbnails on the product page (#13).
+  designImages String[] @default([])
   /// null stock = made-to-order / unlimited. A number tracks inventory.
   stock       Int?
   active      Boolean  @default(true)
@@ -75,8 +78,11 @@ model Order {
   shippingAddress Json?
   /// Snapshot totals (cents).
   subtotalCents   Int         @default(0)
+  discountCents   Int         @default(0)
   totalCents      Int         @default(0)
   currency        String      @default("eur")
+  /// Promo code applied to this order, if any (#4).
+  promoCode       String?
 
   stripeSessionId       String? @unique
   stripePaymentIntentId String?
@@ -113,8 +119,12 @@ model OrderItem {
   slug       String
   priceCents Int
   quantity   Int    @default(1)
-  /// Free-text device the customer wants the case for (e.g. "iPhone 15 Pro").
+  /// Device the case is for (e.g. "iPhone 15 Pro").
   phoneModel String?
+  /// Device brand (e.g. "Apple", "Samsung") (#18).
+  phoneBrand String?
+  /// Chosen design option, e.g. "Design 2" (#13).
+  designChoice String?
 
   @@index([orderId])
 }
@@ -143,10 +153,49 @@ model Review {
   rating      Int // 1..5
   body        String
   productSlug String?
+  /// Optional photo (e.g. from a Google review) (#11/#21).
+  imageUrl    String?
   approved    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
   @@index([approved])
+}
+
+enum DiscountKind {
+  PERCENT
+  FIXED
+}
+
+/// Admin-managed promo code applied on our own cart, before Stripe (#4).
+model PromoCode {
+  id               String       @id @default(cuid())
+  code             String       @unique
+  kind             DiscountKind @default(PERCENT)
+  /// Percent (1-100) when PERCENT, else a fixed amount in cents.
+  value            Int
+  active           Boolean      @default(true)
+  minSubtotalCents Int?
+  maxRedemptions   Int?
+  timesRedeemed    Int          @default(0)
+  expiresAt        DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([active])
+}
+
+/// Newsletter subscriber captured by the 5%-off signup (#22).
+model Subscriber {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  /// The 5%-off code issued to this subscriber.
+  code       String?
+  unsubToken String   @unique
+  active     Boolean  @default(true)
+  source     String?  @default("popup")
+  createdAt  DateTime @default(now())
+
+  @@index([active])
 }
 
 /// Append-only audit log for sensitive admin actions.
