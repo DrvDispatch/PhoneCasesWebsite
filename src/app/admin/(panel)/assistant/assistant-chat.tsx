@@ -9,6 +9,7 @@ type Msg = {
   attachments?: string[];
   actions?: Action[];
   applied?: boolean;
+  undoId?: string;
 };
 
 const EXAMPLES = [
@@ -81,12 +82,44 @@ export function AssistantChat({ configured }: { configured: boolean }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ actions }),
       });
-      const data = (await res.json()) as { results?: { ok: boolean; message: string }[]; error?: string };
+      const data = (await res.json()) as {
+        results?: { ok: boolean; message: string }[];
+        snapshotId?: string;
+        error?: string;
+      };
       setMessages((m) => m.map((msg, i) => (i === index ? { ...msg, applied: true } : msg)));
       const lines = (data.results ?? []).map((r) => `${r.ok ? "✅" : "⚠️"} ${r.message}`);
-      setMessages((m) => [...m, { role: "assistant", text: lines.join("\n") || data.error || "Done." }]);
+      setMessages((m) => [
+        ...m,
+        { role: "assistant", text: lines.join("\n") || data.error || "Done.", undoId: data.snapshotId },
+      ]);
     } catch {
       setMessages((m) => [...m, { role: "assistant", text: "Couldn't apply — please try again." }]);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function undo(id: string) {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/backups/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id }),
+      });
+      const data = (await res.json()) as { ok?: boolean; restored?: number; deleted?: number; error?: string };
+      setMessages((m) => [
+        ...m,
+        {
+          role: "assistant",
+          text: data.ok
+            ? `↩️ Reverted — restored ${data.restored} product(s)${data.deleted ? `, removed ${data.deleted} new one(s)` : ""}.`
+            : data.error || "Couldn't undo.",
+        },
+      ]);
+    } catch {
+      setMessages((m) => [...m, { role: "assistant", text: "Couldn't undo — try the Backups page." }]);
     } finally {
       setBusy(false);
     }
@@ -165,6 +198,18 @@ export function AssistantChat({ configured }: { configured: boolean }) {
                       Dismiss
                     </button>
                   </div>
+                </div>
+              )}
+
+              {m.undoId && (
+                <div className="mt-2">
+                  <button
+                    onClick={() => undo(m.undoId!)}
+                    disabled={busy}
+                    className="btn btn-outline px-3 py-1.5 text-xs"
+                  >
+                    ↩️ Undo these changes
+                  </button>
                 </div>
               )}
             </div>

@@ -3,21 +3,26 @@ import { prisma } from "./db";
 import { formatMoney } from "./money";
 import type { GeminiTool, GeminiFunctionCall } from "./gemini";
 
+const MIN_PRICE = 100; // €1.00 — floor so the AI can't make things free / crazy-cheap
+const MAX_PRICE = 1_000_000; // €10,000
+
 /** System prompt for the admin assistant. */
 export const ASSISTANT_SYSTEM = `You are the friendly AI assistant inside the GlobeCase shop admin panel. You help the shop owner manage their products using the available tools.
 
 Rules:
-- Prices are always in CENTS (100 cents = €1). If the owner says euros, convert: "25 euro" -> 2500.
+- Prices are always in CENTS (100 cents = €1). If the owner says euros, convert: "25 euro" -> 2500. Prices can't go below €1.
+- The "target" of a tool can be: a product's country/name (e.g. "Chechnya"), a slug (e.g. "chechnya"), a REGION name (e.g. "Europe" = all products in Europe), or "all".
 - Only call a tool when the owner asks to CHANGE something. For questions, answer briefly using the catalogue below.
-- Refer to products by their exact name/slug from the catalogue. Never invent a product; if it isn't listed, say so.
-- If a request is ambiguous (e.g. two products match), ask ONE short clarifying question instead of guessing.
-- When the owner refers to "this image" / "this photo" / "the uploaded one", use the attached image URL with set_image.
+- Never invent a product; if it isn't listed, say so (unless the owner is creating a new one).
+- If a request is ambiguous, ask ONE short clarifying question instead of guessing.
+- When the owner refers to "this image" / "the uploaded one", use the attached image URL with set_image or create_product.
+- You can create and delete products; deleting the ENTIRE catalogue is blocked. Every change is backed up first and can be undone.
 - Be concise and warm. You never apply changes yourself — the owner reviews and confirms them with an Apply button.`;
 
 const targetParam = {
   type: "string",
   description:
-    "Which product: its country/name (e.g. 'Chechnya') or slug (e.g. 'chechnya'). Use 'all' to affect every product.",
+    "What to target: a product country/name (e.g. 'Chechnya'), a slug (e.g. 'chechnya'), a REGION name (e.g. 'Europe' = all Europe products), or 'all'.",
 };
 
 export const ASSISTANT_TOOLS: GeminiTool[] = [
@@ -25,7 +30,7 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
     functionDeclarations: [
       {
         name: "set_price",
-        description: "Set the price of a product, or of 'all' products. price_cents is in cents (2500 = €25.00).",
+        description: "Set an absolute price for a product / region / all. price_cents in cents (2500 = €25.00).",
         parameters: {
           type: "object",
           properties: { target: targetParam, price_cents: { type: "integer" } },
@@ -33,8 +38,31 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
         },
       },
       {
+        name: "adjust_price",
+        description: "Change price by a relative amount for a product / region / all. Give either percent or amount_cents, and direction.",
+        parameters: {
+          type: "object",
+          properties: {
+            target: targetParam,
+            direction: { type: "string", description: "'increase' or 'decrease'" },
+            percent: { type: "integer" },
+            amount_cents: { type: "integer" },
+          },
+          required: ["target", "direction"],
+        },
+      },
+      {
+        name: "set_stock",
+        description: "Set stock count for a product / region / all. Pass unlimited=true for made-to-order.",
+        parameters: {
+          type: "object",
+          properties: { target: targetParam, stock: { type: "integer" }, unlimited: { type: "boolean" } },
+          required: ["target"],
+        },
+      },
+      {
         name: "set_visibility",
-        description: "Show or hide a product (or 'all'). active=true shows it in the store; false hides it.",
+        description: "Show or hide products (product / region / all). active=true shows them.",
         parameters: {
           type: "object",
           properties: { target: targetParam, active: { type: "boolean" } },
@@ -43,7 +71,7 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
       },
       {
         name: "set_featured",
-        description: "Mark a product (or 'all') as featured/bestseller, or remove that.",
+        description: "Mark products as featured/bestseller or not (product / region / all).",
         parameters: {
           type: "object",
           properties: { target: targetParam, featured: { type: "boolean" } },
@@ -51,9 +79,31 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
         },
       },
       {
+        name: "create_product",
+        description: "Create a NEW product. country is the country/name; region is which region it belongs to.",
+        parameters: {
+          type: "object",
+          properties: {
+            country: { type: "string" },
+            region: { type: "string" },
+            price_cents: { type: "integer" },
+            image_url: { type: "string" },
+          },
+          required: ["country", "region"],
+        },
+      },
+      {
+        name: "delete_product",
+        description: "Delete a product (or a named set / a region's products). Deleting ALL products is blocked.",
+        parameters: {
+          type: "object",
+          properties: { target: targetParam },
+          required: ["target"],
+        },
+      },
+      {
         name: "set_image",
-        description:
-          "Set a product's MAIN photo to an uploaded image. image_url must be one of the attached image URLs the owner provided.",
+        description: "Set a product's MAIN photo to an uploaded image URL (from the owner's attachments).",
         parameters: {
           type: "object",
           properties: { target: targetParam, image_url: { type: "string" } },
@@ -63,7 +113,7 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
       {
         name: "set_image_appearance",
         description:
-          "Change how a product's image is displayed (or 'all'). fit: 'contain' shows the whole image, 'cover' fills and crops. scale_percent 50-160. background is a hex colour like '#ffffff'.",
+          "Change how a product's image is displayed (product / region / all). fit: 'contain'/'cover'. scale_percent 50-160. background hex like '#ffffff'.",
         parameters: {
           type: "object",
           properties: {
@@ -77,8 +127,7 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
       },
       {
         name: "set_description",
-        description:
-          "Set the description of a product, or of ALL products from a template. For 'all', text may contain {country}, replaced with each product's country.",
+        description: "Set the description of a product, or of ALL products from a {country} template.",
         parameters: {
           type: "object",
           properties: { target: targetParam, text: { type: "string" } },
@@ -87,7 +136,7 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
       },
       {
         name: "create_promo_code",
-        description: "Create a percentage discount code customers type at checkout. percent_off is 1-90.",
+        description: "Create a percentage discount code (percent_off 1-90).",
         parameters: {
           type: "object",
           properties: { code: { type: "string" }, percent_off: { type: "integer" } },
@@ -101,7 +150,18 @@ export const ASSISTANT_TOOLS: GeminiTool[] = [
 // ---------------------------------------------------------------------------
 
 export type PlannedAction = {
-  type: "set_prices" | "set_visibility" | "set_featured" | "set_image" | "set_appearance" | "set_descriptions" | "create_promo";
+  type:
+    | "set_prices"
+    | "adjust_price"
+    | "set_stock"
+    | "set_visibility"
+    | "set_featured"
+    | "create_product"
+    | "delete_products"
+    | "set_image"
+    | "set_appearance"
+    | "set_descriptions"
+    | "create_promo";
   params: Record<string, unknown>;
   summary: string;
 };
@@ -129,10 +189,18 @@ function idList(v: unknown): string[] {
 function isImageUrl(url: string): boolean {
   return url.startsWith("/uploads/") || /^https?:\/\//.test(url);
 }
+function slugify(s: string): string {
+  return s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
+}
 
-async function resolveTargets(
-  target: string,
-): Promise<{ all: boolean; products: { id: string; slug: string; name: string }[]; error?: string }> {
+type Resolved = {
+  all: boolean;
+  regionName?: string;
+  products: { id: string; slug: string; name: string }[];
+  error?: string;
+};
+
+async function resolveTargets(target: string): Promise<Resolved> {
   const t = (target || "").trim();
   if (!t) return { all: false, products: [], error: "No product was specified." };
   if (["all", "everything", "all products", "every product"].includes(t.toLowerCase())) {
@@ -144,6 +212,7 @@ async function resolveTargets(
     select: { id: true, slug: true, name: true },
   });
   if (bySlug) return { all: false, products: [bySlug] };
+
   const term = t.replace(/\s*phone case\s*/i, "").trim();
   const byName = await prisma.product.findMany({
     where: { name: { contains: term, mode: "insensitive" } },
@@ -153,7 +222,35 @@ async function resolveTargets(
   if (byName.length === 1) return { all: false, products: byName };
   if (byName.length > 1)
     return { all: false, products: [], error: `“${t}” matches several products (${byName.map((p) => p.name).join(", ")}). Which one?` };
-  return { all: false, products: [], error: `I couldn't find a product matching “${t}”.` };
+
+  // Region name/slug -> all products in that region.
+  const region = await prisma.region.findFirst({
+    where: { OR: [{ slug: t.toLowerCase() }, { name: { equals: term, mode: "insensitive" } }] },
+    select: { id: true, name: true },
+  });
+  if (region) {
+    const products = await prisma.product.findMany({
+      where: { regionId: region.id },
+      select: { id: true, slug: true, name: true },
+    });
+    return { all: false, regionName: region.name, products };
+  }
+  return { all: false, products: [], error: `I couldn't find a product or region matching “${t}”.` };
+}
+
+function scopeLabel(r: Resolved): string {
+  if (r.all) return `all ${r.products.length} products`;
+  if (r.regionName) return `all ${r.products.length} ${r.regionName} products`;
+  return r.products[0]?.name ?? "product";
+}
+
+async function resolveRegion(name: string): Promise<{ id: string; name: string } | null> {
+  const t = name.trim();
+  if (!t) return null;
+  return prisma.region.findFirst({
+    where: { OR: [{ slug: t.toLowerCase() }, { name: { equals: t, mode: "insensitive" } }] },
+    select: { id: true, name: true },
+  });
 }
 
 /** A compact snapshot of the catalogue for the model's context. */
@@ -162,11 +259,12 @@ export async function catalogContext(): Promise<string> {
     orderBy: [{ region: { sortOrder: "asc" } }, { name: "asc" }],
     include: { region: true },
   });
+  const regions = [...new Set(products.map((p) => p.region.name))];
   const lines = products.map(
     (p) =>
-      `- ${p.name} (slug: ${p.slug}, region: ${p.region.name}, price: ${money(p.priceCents)}, ${p.active ? "visible" : "hidden"}${p.featured ? ", featured" : ""})`,
+      `- ${p.name} (slug: ${p.slug}, region: ${p.region.name}, price: ${money(p.priceCents)}, stock: ${p.stock == null ? "unlimited" : p.stock}, ${p.active ? "visible" : "hidden"}${p.featured ? ", featured" : ""})`,
   );
-  return `Catalogue (${products.length} products):\n${lines.join("\n")}`;
+  return `Regions: ${regions.join(", ")}.\nCatalogue (${products.length} products):\n${lines.join("\n")}`;
 }
 
 /** Turn one Gemini function call into a validated, resolved, ready-to-apply action. */
@@ -176,26 +274,64 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
 
   switch (fc.name) {
     case "set_price": {
-      const cents = clampInt(a.price_cents, 1, 1_000_000);
-      if (cents === null) return { note: "That price doesn't look valid." };
+      const cents = clampInt(a.price_cents, MIN_PRICE, MAX_PRICE);
+      if (cents === null) return { note: "That price doesn't look valid (minimum €1)." };
       const r = await resolveTargets(target);
       if (r.error) return { note: r.error };
-      const scope = r.all ? `all ${r.products.length} products` : r.products[0].name;
-      return { action: { type: "set_prices", params: { ids: r.products.map((p) => p.id), price_cents: cents }, summary: `Set the price of ${scope} to ${money(cents)}.` } };
+      return { action: { type: "set_prices", params: { ids: r.products.map((p) => p.id), price_cents: cents }, summary: `Set the price of ${scopeLabel(r)} to ${money(cents)}.` } };
+    }
+    case "adjust_price": {
+      const r = await resolveTargets(target);
+      if (r.error) return { note: r.error };
+      const dir = String(a.direction ?? "increase").toLowerCase() === "decrease" ? "decrease" : "increase";
+      const percent = a.percent != null ? clampInt(a.percent, 1, 500) : null;
+      const amount = a.amount_cents != null ? clampInt(a.amount_cents, 1, MAX_PRICE) : null;
+      if (percent === null && amount === null) return { note: "By how much — a percentage or an amount?" };
+      const by = percent != null ? `${percent}%` : money(amount!);
+      return { action: { type: "adjust_price", params: { ids: r.products.map((p) => p.id), direction: dir, percent, amount_cents: amount }, summary: `${dir === "increase" ? "Increase" : "Decrease"} the price of ${scopeLabel(r)} by ${by} (min €1).` } };
+    }
+    case "set_stock": {
+      const r = await resolveTargets(target);
+      if (r.error) return { note: r.error };
+      const unlimited = a.unlimited === true || String(a.unlimited).toLowerCase() === "true";
+      const stock = unlimited ? null : clampInt(a.stock, 0, 1_000_000);
+      if (!unlimited && stock === null) return { note: "How many in stock? (or say unlimited)" };
+      return { action: { type: "set_stock", params: { ids: r.products.map((p) => p.id), stock }, summary: `Set stock of ${scopeLabel(r)} to ${unlimited ? "unlimited" : stock}.` } };
     }
     case "set_visibility": {
       const active = a.active === true || String(a.active).toLowerCase() === "true";
       const r = await resolveTargets(target);
       if (r.error) return { note: r.error };
-      const scope = r.all ? `all ${r.products.length} products` : r.products[0].name;
-      return { action: { type: "set_visibility", params: { ids: r.products.map((p) => p.id), active }, summary: `${active ? "Show" : "Hide"} ${scope}.` } };
+      return { action: { type: "set_visibility", params: { ids: r.products.map((p) => p.id), active }, summary: `${active ? "Show" : "Hide"} ${scopeLabel(r)}.` } };
     }
     case "set_featured": {
       const featured = a.featured === true || String(a.featured).toLowerCase() === "true";
       const r = await resolveTargets(target);
       if (r.error) return { note: r.error };
-      const scope = r.all ? `all ${r.products.length} products` : r.products[0].name;
-      return { action: { type: "set_featured", params: { ids: r.products.map((p) => p.id), featured }, summary: `${featured ? "Feature" : "Un-feature"} ${scope}.` } };
+      return { action: { type: "set_featured", params: { ids: r.products.map((p) => p.id), featured }, summary: `${featured ? "Feature" : "Un-feature"} ${scopeLabel(r)}.` } };
+    }
+    case "create_product": {
+      const country = String(a.country ?? "").trim();
+      if (!country) return { note: "What country/name is the new product for?" };
+      const region = await resolveRegion(String(a.region ?? ""));
+      if (!region) return { note: `Which region should “${country}” go in? (Kavkaz, Europe, Balkan, Asia, Africa, America)` };
+      const cents = a.price_cents != null ? clampInt(a.price_cents, MIN_PRICE, MAX_PRICE) : 2000;
+      const slug = slugify(country);
+      if (!slug) return { note: "That name can't be used as a product." };
+      if (await prisma.product.findUnique({ where: { slug } })) return { note: `A product “${country}” (${slug}) already exists.` };
+      const url = String(a.image_url ?? "").trim();
+      const image = isImageUrl(url) || attachments.includes(url) ? url : null;
+      return { action: { type: "create_product", params: { country, name: `${country} Phone Case`, slug, regionId: region.id, regionName: region.name, price_cents: cents, image }, summary: `Create “${country} Phone Case” in ${region.name} at ${money(cents!)}${image ? " with the uploaded photo" : ""}.` } };
+    }
+    case "delete_product": {
+      const r = await resolveTargets(target);
+      if (r.error) return { note: r.error };
+      const total = await prisma.product.count();
+      if (r.all || r.products.length >= total)
+        return { note: "I won't delete the whole catalogue — that's blocked. Name the specific product(s) to delete." };
+      if (!r.products.length) return { note: "Nothing matched to delete." };
+      const names = r.products.map((p) => p.name);
+      return { action: { type: "delete_products", params: { ids: r.products.map((p) => p.id), names }, summary: `Delete ${names.length === 1 ? names[0] : `${names.length} products (${names.join(", ")})`}. You can undo this from Backups.` } };
     }
     case "set_image": {
       const url = String(a.image_url ?? "").trim();
@@ -203,7 +339,7 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
         return { note: "Attach an image first, then tell me which product to use it for." };
       const r = await resolveTargets(target);
       if (r.error) return { note: r.error };
-      if (r.all) return { note: "Setting one photo on every product is unusual — name a specific product." };
+      if (r.all || r.regionName) return { note: "Setting one photo on many products is unusual — name a specific product." };
       return { action: { type: "set_image", params: { ids: r.products.map((p) => p.id), image_url: url }, summary: `Set the main photo of ${r.products[0].name} to the uploaded image.` } };
     }
     case "set_image_appearance": {
@@ -225,8 +361,7 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
         if (bg) { data.imageBg = bg; bits.push(`background: ${bg}`); }
       }
       if (!Object.keys(data).length) return { note: "Tell me what to change: fit (contain/cover), zoom, or background colour." };
-      const scope = r.all ? `all ${r.products.length} products` : r.products[0].name;
-      return { action: { type: "set_appearance", params: { ids: r.products.map((p) => p.id), data }, summary: `Change image display of ${scope} (${bits.join(", ")}).` } };
+      return { action: { type: "set_appearance", params: { ids: r.products.map((p) => p.id), data }, summary: `Change image display of ${scopeLabel(r)} (${bits.join(", ")}).` } };
     }
     case "set_description": {
       const text = String(a.text ?? "").trim().slice(0, 4000);
@@ -235,7 +370,7 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
       if (r.error) return { note: r.error };
       if (r.all)
         return { action: { type: "set_descriptions", params: { template: text }, summary: `Set the description of all ${r.products.length} products from a template.` } };
-      return { action: { type: "set_descriptions", params: { ids: r.products.map((p) => p.id), text }, summary: `Update the description of ${r.products[0].name}.` } };
+      return { action: { type: "set_descriptions", params: { ids: r.products.map((p) => p.id), text }, summary: `Update the description of ${scopeLabel(r)}.` } };
     }
     case "create_promo_code": {
       const code = String(a.code ?? "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
@@ -249,15 +384,40 @@ export async function planCall(fc: GeminiFunctionCall, attachments: string[]): P
   }
 }
 
-/** Execute a validated action against the DB. Whitelisted, bounded, no deletes. */
+/** Execute a validated action. Whitelisted + bounded. Deletes are per-product only. */
 export async function executeAction(action: PlannedAction): Promise<{ ok: boolean; message: string }> {
   switch (action.type) {
     case "set_prices": {
-      const cents = clampInt(action.params.price_cents, 1, 1_000_000);
+      const cents = clampInt(action.params.price_cents, MIN_PRICE, MAX_PRICE);
       const ids = idList(action.params.ids);
       if (cents === null || !ids.length) return { ok: false, message: "Invalid price update." };
       const r = await prisma.product.updateMany({ where: { id: { in: ids } }, data: { priceCents: cents } });
       return { ok: true, message: `Set price of ${r.count} product(s) to ${money(cents)}.` };
+    }
+    case "adjust_price": {
+      const ids = idList(action.params.ids);
+      if (!ids.length) return { ok: false, message: "No products." };
+      const dir = action.params.direction === "decrease" ? -1 : 1;
+      const percent = action.params.percent != null ? Number(action.params.percent) : null;
+      const amount = action.params.amount_cents != null ? Number(action.params.amount_cents) : null;
+      const products = await prisma.product.findMany({ where: { id: { in: ids } }, select: { id: true, priceCents: true } });
+      let n = 0;
+      for (const p of products) {
+        let np = p.priceCents;
+        if (percent != null) np = Math.round(p.priceCents * (1 + (dir * percent) / 100));
+        else if (amount != null) np = p.priceCents + dir * amount;
+        np = Math.max(MIN_PRICE, Math.min(MAX_PRICE, np));
+        await prisma.product.update({ where: { id: p.id }, data: { priceCents: np } });
+        n++;
+      }
+      return { ok: true, message: `Adjusted the price of ${n} product(s).` };
+    }
+    case "set_stock": {
+      const ids = idList(action.params.ids);
+      const stock = action.params.stock === null ? null : clampInt(action.params.stock, 0, 1_000_000);
+      if (!ids.length) return { ok: false, message: "No products." };
+      const r = await prisma.product.updateMany({ where: { id: { in: ids } }, data: { stock } });
+      return { ok: true, message: `Set stock on ${r.count} product(s) to ${stock === null ? "unlimited" : stock}.` };
     }
     case "set_visibility": {
       const ids = idList(action.params.ids);
@@ -272,6 +432,38 @@ export async function executeAction(action: PlannedAction): Promise<{ ok: boolea
       if (!ids.length) return { ok: false, message: "No products." };
       const r = await prisma.product.updateMany({ where: { id: { in: ids } }, data: { featured } });
       return { ok: true, message: `Updated ${r.count} product(s).` };
+    }
+    case "create_product": {
+      const slug = String(action.params.slug ?? "");
+      const regionId = String(action.params.regionId ?? "");
+      if (!slug || !regionId) return { ok: false, message: "Invalid product." };
+      if (await prisma.product.findUnique({ where: { slug } })) return { ok: false, message: `“${slug}” already exists.` };
+      const region = await prisma.region.findUnique({ where: { id: regionId }, select: { id: true } });
+      if (!region) return { ok: false, message: "That region no longer exists." };
+      const cents = clampInt(action.params.price_cents, MIN_PRICE, MAX_PRICE) ?? 2000;
+      const image = typeof action.params.image === "string" && isImageUrl(action.params.image) ? action.params.image : null;
+      const country = String(action.params.country ?? "");
+      await prisma.product.create({
+        data: {
+          slug,
+          name: String(action.params.name ?? `${country} Phone Case`),
+          description: `Wear your roots. The ${country} Phone Case is a premium, culturally inspired design celebrating ${country} — made to order for any iPhone or Samsung. Worldwide free shipping and 7-day returns.`,
+          priceCents: cents,
+          currency: "eur",
+          image,
+          regionId,
+          active: true,
+        },
+      });
+      return { ok: true, message: `Created ${country} Phone Case.` };
+    }
+    case "delete_products": {
+      const ids = idList(action.params.ids);
+      if (!ids.length) return { ok: false, message: "No products." };
+      const total = await prisma.product.count();
+      if (ids.length >= total) return { ok: false, message: "Refused: that would delete the whole catalogue." };
+      const r = await prisma.product.deleteMany({ where: { id: { in: ids } } });
+      return { ok: true, message: `Deleted ${r.count} product(s).` };
     }
     case "set_image": {
       const ids = idList(action.params.ids);
@@ -322,8 +514,7 @@ export async function executeAction(action: PlannedAction): Promise<{ ok: boolea
       const code = String(action.params.code ?? "").toUpperCase().replace(/[^A-Z0-9_-]/g, "");
       const pct = clampInt(action.params.percent, 1, 90);
       if (code.length < 2 || pct === null) return { ok: false, message: "Invalid promo code." };
-      if (await prisma.promoCode.findUnique({ where: { code } }))
-        return { ok: false, message: `Code ${code} already exists.` };
+      if (await prisma.promoCode.findUnique({ where: { code } })) return { ok: false, message: `Code ${code} already exists.` };
       await prisma.promoCode.create({ data: { code, kind: "PERCENT", value: pct, active: true } });
       return { ok: true, message: `Created promo code ${code} (${pct}% off).` };
     }
@@ -334,10 +525,19 @@ export async function executeAction(action: PlannedAction): Promise<{ ok: boolea
 
 export const ALLOWED_ACTION_TYPES = new Set<PlannedAction["type"]>([
   "set_prices",
+  "adjust_price",
+  "set_stock",
   "set_visibility",
   "set_featured",
+  "create_product",
+  "delete_products",
   "set_image",
   "set_appearance",
   "set_descriptions",
   "create_promo",
 ]);
+
+/** Actions that modify products (so a snapshot is worth taking before applying). */
+export function affectsProducts(actions: PlannedAction[]): boolean {
+  return actions.some((a) => a.type !== "create_promo");
+}

@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/auth";
-import { executeAction, ALLOWED_ACTION_TYPES, type PlannedAction } from "@/lib/assistant";
+import { executeAction, ALLOWED_ACTION_TYPES, affectsProducts, type PlannedAction } from "@/lib/assistant";
+import { takeSnapshot } from "@/lib/snapshot";
 import { audit } from "@/lib/audit";
 import { clientIp } from "@/lib/rate-limit";
 import { logger } from "@/lib/logger";
@@ -10,7 +11,7 @@ import { logger } from "@/lib/logger";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Apply phase: execute the actions the owner confirmed. Whitelisted + audited. */
+/** Apply phase: back up, then execute the actions the owner confirmed. Audited. */
 export async function POST(req: Request) {
   const admin = await requireAdmin();
 
@@ -23,6 +24,16 @@ export async function POST(req: Request) {
 
   const actions: PlannedAction[] = Array.isArray(body?.actions) ? (body.actions as PlannedAction[]).slice(0, 20) : [];
   if (!actions.length) return NextResponse.json({ error: "Nothing to apply." }, { status: 400 });
+
+  // Back up the catalogue first so any change can be undone.
+  let snapshotId: string | null = null;
+  if (affectsProducts(actions)) {
+    try {
+      snapshotId = await takeSnapshot(`Before AI: ${actions.map((a) => a.summary).join("; ").slice(0, 200)}`);
+    } catch (err) {
+      logger.error({ err }, "snapshot before apply failed");
+    }
+  }
 
   const results: { ok: boolean; message: string }[] = [];
   for (const action of actions) {
@@ -50,5 +61,5 @@ export async function POST(req: Request) {
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath("/");
-  return NextResponse.json({ results });
+  return NextResponse.json({ results, snapshotId });
 }

@@ -234,3 +234,15 @@ model Setting {
   value     String
   updatedAt DateTime @updatedAt
 }
+
+/// Point-in-time backup of the product catalogue (auto before AI changes, or manual).
+/// Enables one-click restore/undo. `data` holds the full product rows as JSON.
+model Snapshot {
+  id           String   @id @default(cuid())
+  label        String
+  productCount Int      @default(0)
+  data         Json
+  createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+}
