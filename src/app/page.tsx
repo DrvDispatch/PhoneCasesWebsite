@@ -20,25 +20,28 @@ export default async function HomePage() {
 
       {/* Hero */}
       <section className="bg-brand text-white">
-        <div className="container-page grid items-center gap-8 py-14 md:grid-cols-2 md:py-20">
+        <div className="container-page grid items-center gap-8 py-12 md:grid-cols-2 md:py-20">
           <div>
-            <p className="font-display text-sm uppercase tracking-[0.2em] text-accent">
+            <p className="font-display text-xs uppercase tracking-[0.2em] text-accent sm:text-sm">
               Worldwide phone cases
             </p>
-            <h1 className="mt-3 font-display text-4xl leading-tight md:text-5xl">
+            <h1 className="mt-3 font-display text-4xl leading-tight sm:text-5xl">
               Bye old case.
               <br />
               Hi <span className="text-accent">GlobeCase</span>.
             </h1>
-            <p className="mt-4 max-w-md text-white/80">
+            <p className="mt-4 max-w-md text-sm text-white/80 sm:text-base">
               Culturally inspired phone cases, organised by region. Made to order for any device —
-              worldwide free shipping, 7-day returns, and 5% donated to WWF &amp; UNICEF.
+              worldwide free shipping and 7-day returns.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link href="/shop" className="btn btn-primary">
                 Shop by region
               </Link>
-              <Link href="/reviews" className="btn btn-outline border-white/30 text-white hover:text-accent">
+              <Link
+                href="/reviews"
+                className="btn btn-outline border-white/30 text-white hover:text-accent"
+              >
                 Read reviews
               </Link>
             </div>
@@ -58,13 +61,30 @@ export default async function HomePage() {
 
       <TrustBadges />
 
-      {/* Regions */}
-      <section className="container-page py-14">
-        <div className="mb-8 text-center">
-          <h2 className="font-display text-3xl uppercase tracking-wide">Shop by Region</h2>
-          <p className="mt-2 text-ink-soft">Six regions. Dozens of designs. One made for you.</p>
+      {/* Country search — moved up so it's the first thing after the badges */}
+      <section className="bg-surface-alt py-10 sm:py-14">
+        <div className="container-page max-w-2xl text-center">
+          <h2 className="font-display text-2xl uppercase tracking-wide">Find your country</h2>
+          <p className="mt-2 text-sm text-ink-soft sm:text-base">
+            Search to jump straight to the case for your heritage.
+          </p>
+          <div className="mt-6 text-left">
+            <CountrySearch />
+          </div>
         </div>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      </section>
+
+      {/* Regions */}
+      <section className="container-page py-10 sm:py-14">
+        <div className="mb-8 text-center">
+          <h2 className="font-display text-2xl uppercase tracking-wide sm:text-3xl">
+            Shop by Region
+          </h2>
+          <p className="mt-2 text-sm text-ink-soft sm:text-base">
+            Six regions. Dozens of designs. One made for you.
+          </p>
+        </div>
+        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {regions.map((r) => (
             <RegionCard
               key={r.id}
@@ -78,25 +98,12 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Country search */}
-      <section className="bg-surface-alt py-14">
-        <div className="container-page max-w-2xl text-center">
-          <h2 className="font-display text-2xl uppercase tracking-wide">Find your country</h2>
-          <p className="mt-2 text-ink-soft">
-            Search to jump straight to the case for your heritage.
-          </p>
-          <div className="mt-6 text-left">
-            <CountrySearch />
-          </div>
-        </div>
-      </section>
-
       {/* Featured */}
       {featured.length > 0 && (
-        <section className="container-page py-14">
+        <section className="container-page py-10 sm:py-14">
           <div className="mb-8 flex items-end justify-between">
-            <h2 className="font-display text-3xl uppercase tracking-wide">Bestsellers</h2>
-            <Link href="/shop" className="text-sm font-medium text-accent">
+            <h2 className="font-display text-2xl uppercase tracking-wide sm:text-3xl">Bestsellers</h2>
+            <Link href="/shop" className="text-sm font-semibold text-brand transition hover:text-accent">
               View all →
             </Link>
           </div>
@@ -117,11 +124,11 @@ export default async function HomePage() {
       )}
 
       {/* Reviews teaser */}
-      <section className="bg-brand-dark py-14 text-white">
+      <section className="bg-brand-dark py-12 text-white sm:py-14">
         <div className="container-page text-center">
-          <p className="font-display text-2xl">★★★★★</p>
+          <p className="font-display text-2xl text-accent">★★★★★</p>
           <h2 className="mt-2 font-display text-2xl uppercase tracking-wide">Loved worldwide</h2>
-          <p className="mx-auto mt-2 max-w-lg text-white/75">
+          <p className="mx-auto mt-2 max-w-lg text-sm text-white/75 sm:text-base">
             Customers across Europe and beyond trust GlobeCase for quality prints and fast delivery.
           </p>
           <Link href="/reviews" className="btn btn-primary mt-5">

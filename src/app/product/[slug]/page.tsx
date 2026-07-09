@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getProductBySlug } from "@/lib/queries";
+import { getProductBySlug, getAllActiveProducts } from "@/lib/queries";
 import { formatMoney } from "@/lib/money";
 import { AddToCart } from "@/components/add-to-cart";
+import { RelatedProducts } from "@/components/related-products";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 import { TRUST_BADGES } from "@/lib/site";
+import { TRUST_ICONS } from "@/components/icons";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +37,19 @@ export default async function ProductPage({ params }: Params) {
   if (!product) notFound();
 
   const inStock = product.stock === null || product.stock > 0;
+
+  const others = (await getAllActiveProducts())
+    .filter((p) => p.slug !== product.slug)
+    .slice(0, 12)
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: p.name,
+      priceCents: p.priceCents,
+      currency: p.currency,
+      image: p.image,
+      regionName: p.region.name,
+    }));
 
   return (
     <>
@@ -76,7 +91,7 @@ export default async function ProductPage({ params }: Params) {
               fill
               sizes="(max-width: 768px) 100vw, 560px"
               priority
-              className="object-cover"
+              className="object-contain p-4"
             />
           </div>
 
@@ -106,17 +121,29 @@ export default async function ProductPage({ params }: Params) {
               )}
             </div>
 
-            <ul className="mt-6 grid grid-cols-2 gap-3 text-sm">
-              {TRUST_BADGES.map((b) => (
-                <li key={b.title} className="flex items-center gap-2">
-                  <span aria-hidden>{b.icon}</span>
-                  <span className="text-ink-soft">{b.title}</span>
-                </li>
-              ))}
+            <ul className="mt-6 grid grid-cols-3 gap-3 text-center text-xs sm:text-sm">
+              {TRUST_BADGES.map((b) => {
+                const Icon = TRUST_ICONS[b.icon];
+                return (
+                  <li
+                    key={b.title}
+                    className="flex flex-col items-center gap-1.5 sm:flex-row sm:justify-center sm:gap-2"
+                  >
+                    <Icon className="h-5 w-5 shrink-0 text-accent" />
+                    <span className="leading-tight text-ink-soft">{b.title}</span>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         </div>
       </div>
+
+      <RelatedProducts
+        products={others}
+        title="Don't forget a present for your family & friends"
+        subtitle="2 + 1 free"
+      />
     </>
   );
 }

@@ -28,8 +28,10 @@ export default async function ShopPage() {
 
       <section className="bg-surface-alt">
         <div className="container-page py-12 text-center">
-          <h1 className="font-display text-4xl uppercase tracking-wide">Shop Phone Cases</h1>
-          <p className="mx-auto mt-2 max-w-xl text-ink-soft">
+          <h1 className="font-display text-3xl uppercase tracking-wide sm:text-4xl">
+            Shop Phone Cases
+          </h1>
+          <p className="mx-auto mt-2 max-w-xl text-sm text-ink-soft sm:text-base">
             Pick your region or search your country — every case is made to order for your exact device.
           </p>
           <div className="mx-auto mt-6 max-w-xl text-left">
@@ -40,7 +42,7 @@ export default async function ShopPage() {
 
       <section className="container-page py-12">
         <h2 className="mb-6 font-display text-2xl uppercase tracking-wide">Regions</h2>
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
           {regions.map((r) => (
             <RegionCard
               key={r.id}

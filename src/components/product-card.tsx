@@ -15,7 +15,7 @@ export function ProductCard({ slug, name, priceCents, currency, image, regionNam
   return (
     <Link
       href={`/product/${slug}`}
-      className="card group flex flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-md"
+      className="card group flex h-full flex-col overflow-hidden transition hover:-translate-y-1 hover:shadow-md"
     >
       <div className="relative aspect-square overflow-hidden bg-surface-alt">
         <Image
@@ -23,7 +23,7 @@ export function ProductCard({ slug, name, priceCents, currency, image, regionNam
           alt={name}
           fill
           sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-          className="object-cover transition duration-300 group-hover:scale-105"
+          className="object-contain p-3 transition duration-300 group-hover:scale-105"
         />
       </div>
       <div className="flex flex-1 flex-col p-4">
