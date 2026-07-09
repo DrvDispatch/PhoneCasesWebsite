@@ -13,7 +13,10 @@ ENV NEXT_TELEMETRY_DISABLED=1
 FROM base AS deps
 COPY package.json package-lock.json* ./
 COPY prisma ./prisma
-RUN npm ci
+# `npm install` (not `npm ci`) so platform-specific native binaries (lightningcss,
+# sharp) resolve for THIS image's OS/libc (Alpine/musl), even if the committed
+# lockfile was last generated on another platform.
+RUN npm install --no-audit --no-fund
 
 # ---- builder: compile the Next standalone bundle ----
 FROM base AS builder
