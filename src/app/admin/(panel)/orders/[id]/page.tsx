@@ -45,12 +45,17 @@ export default async function OrderDetailPage({ params }: Params) {
           <table className="mt-3 w-full text-sm">
             <tbody>
               {order.items.map((it) => (
-                <tr key={it.id} className="border-t border-line-soft">
+                <tr key={it.id} className="border-t border-line-soft align-top">
                   <td className="py-2">
                     {it.name}
-                    {it.phoneModel ? (
-                      <span className="block text-xs text-ink-soft">Device: {it.phoneModel}</span>
-                    ) : null}
+                    {(it.phoneBrand || it.phoneModel) && (
+                      <span className="block text-xs text-ink-soft">
+                        Device: {[it.phoneBrand, it.phoneModel].filter(Boolean).join(" ")}
+                      </span>
+                    )}
+                    {it.designChoice && (
+                      <span className="block text-xs font-medium text-brand">{it.designChoice}</span>
+                    )}
                   </td>
                   <td className="py-2 text-center">× {it.quantity}</td>
                   <td className="py-2 text-right">
@@ -60,9 +65,21 @@ export default async function OrderDetailPage({ params }: Params) {
               ))}
             </tbody>
           </table>
-          <div className="mt-3 flex justify-between border-t border-line pt-3 font-semibold">
-            <span>Total (free shipping)</span>
-            <span>{formatMoney(order.totalCents, order.currency)}</span>
+          <div className="mt-3 space-y-1 border-t border-line pt-3 text-sm">
+            <div className="flex justify-between text-ink-soft">
+              <span>Subtotal</span>
+              <span>{formatMoney(order.subtotalCents, order.currency)}</span>
+            </div>
+            {order.discountCents > 0 && (
+              <div className="flex justify-between text-success">
+                <span>Discount {order.promoCode ? `(${order.promoCode})` : ""}</span>
+                <span>−{formatMoney(order.discountCents, order.currency)}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold">
+              <span>Total (free shipping)</span>
+              <span>{formatMoney(order.totalCents, order.currency)}</span>
+            </div>
           </div>
         </section>
 

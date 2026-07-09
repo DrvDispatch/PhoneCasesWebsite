@@ -10,17 +10,30 @@ import { audit } from "@/lib/audit";
 import { clientIp } from "@/lib/rate-limit";
 
 export type ProductFormState = { error?: string; ok?: boolean };
+export type BulkState = { error?: string; ok?: boolean; count?: number };
+
+/** Split a newline/comma list of image URLs into a clean array. */
+function toList(s: string): string[] {
+  return s
+    .split(/[\n,]/)
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
 
 function readForm(formData: FormData) {
+  const country = String(formData.get("country") ?? "").trim();
   const stockRaw = String(formData.get("stock") ?? "").trim();
   return {
     slug: String(formData.get("slug") ?? "").trim().toLowerCase(),
-    name: String(formData.get("name") ?? "").trim(),
+    // "Phone Case" is a fixed suffix — the admin only types the country name (#5).
+    name: country ? `${country} Phone Case` : "",
     regionSlug: String(formData.get("regionSlug") ?? "").trim().toLowerCase(),
     description: String(formData.get("description") ?? "").trim(),
     priceCents: String(formData.get("priceCents") ?? ""),
     currency: String(formData.get("currency") ?? "eur").trim().toLowerCase(),
     image: String(formData.get("image") ?? "").trim(),
+    gallery: String(formData.get("gallery") ?? ""),
+    designImages: String(formData.get("designImages") ?? ""),
     stock: stockRaw === "" ? null : stockRaw,
     active: formData.get("active") != null,
     featured: formData.get("featured") != null,
@@ -55,6 +68,8 @@ export async function createProduct(
       priceCents: p.priceCents,
       currency: p.currency,
       image: p.image || null,
+      gallery: toList(p.gallery),
+      designImages: toList(p.designImages),
       stock: p.stock ?? null,
       active: p.active,
       featured: p.featured,
@@ -90,6 +105,8 @@ export async function updateProduct(
       priceCents: p.priceCents,
       currency: p.currency,
       image: p.image || null,
+      gallery: toList(p.gallery),
+      designImages: toList(p.designImages),
       stock: p.stock ?? null,
       active: p.active,
       featured: p.featured,
@@ -114,4 +131,31 @@ export async function deleteProduct(id: string) {
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   redirect("/admin/products");
+}
+
+/**
+ * Bulk-set every product's description from a template (#5).
+ * `{country}` -> product name without the "Phone Case" suffix; `{name}` -> full name.
+ */
+export async function applyBulkDescription(_prev: BulkState, formData: FormData): Promise<BulkState> {
+  const admin = await requireAdmin();
+  const template = String(formData.get("template") ?? "").trim();
+  if (template.length < 5) return { error: "Template is too short." };
+
+  const products = await prisma.product.findMany();
+  let count = 0;
+  for (const pr of products) {
+    const country = pr.name.replace(/\s*Phone Case\s*$/i, "");
+    const description = template
+      .replaceAll("{country}", country)
+      .replaceAll("{name}", pr.name)
+      .slice(0, 4000);
+    await prisma.product.update({ where: { id: pr.id }, data: { description } });
+    count++;
+  }
+
+  await audit({ actor: admin.email, action: "product.bulkDescription", meta: { count }, ip: clientIp(await headers()) });
+  revalidatePath("/admin/products");
+  revalidatePath("/shop");
+  return { ok: true, count };
 }

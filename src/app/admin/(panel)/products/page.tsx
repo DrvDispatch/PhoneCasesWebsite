@@ -2,6 +2,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
 import { deleteProduct } from "./actions";
+import { BulkDescriptionForm } from "./bulk-description";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,17 @@ export default async function AdminProductsPage() {
           + New product
         </Link>
       </div>
+
+      <details className="mt-6 rounded-xl border border-line bg-surface p-5">
+        <summary className="cursor-pointer font-display text-lg">Bulk-edit all descriptions</summary>
+        <p className="mt-1 text-sm text-ink-soft">
+          Set one description template for the whole catalogue — you only write the country via{" "}
+          <code className="rounded bg-surface-alt px-1">{"{country}"}</code>.
+        </p>
+        <div className="mt-4">
+          <BulkDescriptionForm />
+        </div>
+      </details>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-line bg-surface">
         <table className="w-full text-sm">

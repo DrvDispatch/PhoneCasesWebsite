@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import type { ProductFormState } from "./actions";
+import { MultiImageField } from "@/components/admin/multi-image-field";
 
 type RegionOption = { slug: string; name: string };
 
@@ -13,6 +14,8 @@ type ProductValues = {
   priceCents?: number;
   currency?: string;
   image?: string | null;
+  gallery?: string[];
+  designImages?: string[];
   stock?: number | null;
   active?: boolean;
   featured?: boolean;
@@ -37,6 +40,8 @@ export function ProductForm({
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
+  const countryDefault = (values.name ?? "").replace(/\s*Phone Case\s*$/i, "");
+
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -60,8 +65,19 @@ export function ProductForm({
     <form action={formAction} className="max-w-2xl space-y-5">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-medium">
-          Name
-          <input name="name" defaultValue={values.name} required className={field} />
+          Country / name
+          <div className="mt-1 flex items-stretch">
+            <input
+              name="country"
+              defaultValue={countryDefault}
+              required
+              placeholder="Chechnya"
+              className="w-full rounded-l-xl border border-r-0 border-line px-4 py-2.5 focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/30"
+            />
+            <span className="inline-flex items-center whitespace-nowrap rounded-r-xl border border-line bg-surface-alt px-3 text-sm text-ink-soft">
+              Phone Case
+            </span>
+          </div>
         </label>
         <label className="block text-sm font-medium">
           Slug (URL)
@@ -105,11 +121,11 @@ export function ProductForm({
       </div>
 
       <div>
-        <span className="block text-sm font-medium">Product image</span>
+        <span className="block text-sm font-medium">Main image</span>
         <div className="mt-1 flex items-start gap-4">
           {image ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={image} alt="" className="h-24 w-24 flex-none rounded-lg border border-line object-cover" />
+            <img src={image} alt="" className="h-24 w-24 flex-none rounded-lg border border-line bg-surface-alt object-contain p-1" />
           ) : (
             <div className="grid h-24 w-24 flex-none place-items-center rounded-lg border border-dashed border-line text-center text-xs text-ink-soft">
               No image
@@ -127,19 +143,29 @@ export function ProductForm({
             <div className="flex items-center gap-3">
               <label className="btn btn-outline cursor-pointer text-sm">
                 {uploading ? "Uploading…" : "Upload image"}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={onUpload}
-                  disabled={uploading}
-                />
+                <input type="file" accept="image/*" className="hidden" onChange={onUpload} disabled={uploading} />
               </label>
               {uploadError && <span className="text-sm text-danger">{uploadError}</span>}
             </div>
           </div>
         </div>
       </div>
+
+      <MultiImageField
+        name="designImages"
+        label="Design options (customer picks one)"
+        hint="Up to 3 designs shown as thumbnails above the quantity, recorded on the order as Design 1/2/3."
+        initial={values.designImages ?? []}
+        max={3}
+      />
+
+      <MultiImageField
+        name="gallery"
+        label="Gallery photos (extra images)"
+        hint="Optional additional product photos."
+        initial={values.gallery ?? []}
+        max={8}
+      />
 
       <label className="block text-sm font-medium">
         Description
@@ -148,13 +174,7 @@ export function ProductForm({
 
       <label className="block text-sm font-medium">
         Stock (leave blank for unlimited / made-to-order)
-        <input
-          name="stock"
-          type="number"
-          min={0}
-          defaultValue={values.stock ?? ""}
-          className={field}
-        />
+        <input name="stock" type="number" min={0} defaultValue={values.stock ?? ""} className={field} />
       </label>
 
       <div className="flex gap-6">

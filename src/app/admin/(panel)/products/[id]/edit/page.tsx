@@ -40,6 +40,8 @@ export default async function EditProductPage({ params }: Params) {
             priceCents: product.priceCents,
             currency: product.currency,
             image: product.image,
+            gallery: product.gallery,
+            designImages: product.designImages,
             stock: product.stock,
             active: product.active,
             featured: product.featured,
