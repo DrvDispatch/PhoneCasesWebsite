@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function CancelPage() {
   return (
-    <div className="container-page py-20">
+    <div className="container-page py-12 sm:py-20">
       <div className="mx-auto max-w-lg text-center">
         <p className="text-5xl">🛒</p>
         <h1 className="mt-4 font-display text-3xl uppercase tracking-wide">Checkout cancelled</h1>

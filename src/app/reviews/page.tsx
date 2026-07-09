@@ -28,7 +28,7 @@ export default async function ReviewsPage() {
   ]);
 
   return (
-    <div className="container-page py-14">
+    <div className="container-page py-10 sm:py-14">
       <div className="text-center">
         <h1 className="font-display text-3xl uppercase tracking-wide sm:text-4xl">Customer Reviews</h1>
         <p className="mt-2 text-ink-soft">Real feedback from GlobeCase customers worldwide.</p>

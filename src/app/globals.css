@@ -58,6 +58,20 @@ img {
   max-width: 100%;
 }
 
+/* Break long words so nothing forces horizontal scroll on small screens. */
+body {
+  overflow-wrap: break-word;
+}
+
+/* Keep form controls >=16px on phones so iOS Safari doesn't zoom in on focus. */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
 /* Accessibility helpers */
 .sr-only {
   position: absolute;

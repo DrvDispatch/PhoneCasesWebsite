@@ -42,19 +42,19 @@ export default async function RegionPage({ params }: Params) {
       />
 
       <section className="bg-brand text-white">
-        <div className="container-page py-12">
+        <div className="container-page py-10 sm:py-12">
           <nav className="text-sm text-white/60">
             <Link href="/shop" className="hover:text-white">
               Shop
             </Link>{" "}
             / <span className="text-white">{region.name}</span>
           </nav>
-          <h1 className="mt-2 font-display text-4xl uppercase tracking-wide">{region.name}</h1>
+          <h1 className="mt-2 font-display text-3xl uppercase tracking-wide sm:text-4xl">{region.name}</h1>
           {region.blurb && <p className="mt-2 max-w-xl text-white/80">{region.blurb}</p>}
         </div>
       </section>
 
-      <section className="container-page py-12">
+      <section className="container-page py-10 sm:py-12">
         {region.products.length === 0 ? (
           <p className="text-ink-soft">No designs here yet — check back soon.</p>
         ) : (

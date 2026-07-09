@@ -48,13 +48,13 @@ export default async function HomePage() {
               Culturally inspired phone cases, organised by region. Made to order for any device —
               worldwide free shipping and 7-day returns.
             </p>
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link href="/shop" className="btn btn-primary">
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+              <Link href="/shop" className="btn btn-primary w-full sm:w-auto">
                 Shop by region
               </Link>
               <Link
                 href="/reviews"
-                className="btn btn-outline border-white/30 text-white hover:text-accent"
+                className="btn btn-outline w-full border-white/30 text-white hover:text-accent sm:w-auto"
               >
                 Read reviews
               </Link>

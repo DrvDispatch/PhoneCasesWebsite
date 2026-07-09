@@ -24,7 +24,7 @@ export default async function SuccessPage({ searchParams }: Search) {
     : null;
 
   return (
-    <div className="container-page py-20">
+    <div className="container-page py-12 sm:py-20">
       <ClearCart />
       <div className="mx-auto max-w-lg text-center">
         <p className="text-5xl">✅</p>

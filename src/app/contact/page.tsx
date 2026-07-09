@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default function ContactPage() {
   const channels = [...CONTACT_LINKS, ...SOCIAL_LINKS];
   return (
-    <div className="container-page py-14">
+    <div className="container-page py-10 sm:py-14">
       <div className="mx-auto max-w-xl text-center">
         <h1 className="font-display text-3xl uppercase tracking-wide sm:text-4xl">Contact Us</h1>
         <p className="mt-3 text-ink-soft">
