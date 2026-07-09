@@ -40,7 +40,7 @@ export default async function AdminReviewsPage() {
             </div>
             <div className="flex flex-none flex-col items-end gap-1 text-sm">
               <form action={toggleReview.bind(null, r.id)}>
-                <button className="text-accent">{r.approved ? "Hide" : "Approve"}</button>
+                <button className="text-brand">{r.approved ? "Hide" : "Approve"}</button>
               </form>
               <form action={deleteReview.bind(null, r.id)}>
                 <button className="text-danger">Delete</button>

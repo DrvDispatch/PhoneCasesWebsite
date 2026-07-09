@@ -148,7 +148,7 @@ export default async function OrderDetailPage({ params }: Params) {
               </p>
             )}
             <form action={resendConfirmation.bind(null, order.id)} className="mt-3">
-              <button className="text-sm text-accent underline">Resend confirmation email</button>
+              <button className="text-sm text-brand underline">Resend confirmation email</button>
             </form>
           </section>
 

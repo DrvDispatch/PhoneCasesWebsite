@@ -42,7 +42,7 @@ export default async function AdminOrdersPage() {
               orders.map((o) => (
                 <tr key={o.id} className="border-t border-line-soft">
                   <td className="px-4 py-3">
-                    <Link href={`/admin/orders/${o.id}`} className="font-medium text-accent">
+                    <Link href={`/admin/orders/${o.id}`} className="font-medium text-brand">
                       {o.number}
                     </Link>
                   </td>

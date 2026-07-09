@@ -39,7 +39,7 @@ export default async function SearchPage({ searchParams }: Search) {
       {term && results.length === 0 && (
         <p className="mt-8 text-ink-soft">
           No cases match “{term}”.{" "}
-          <Link href="/shop" className="text-accent underline">
+          <Link href="/shop" className="font-medium text-brand underline">
             Browse all regions
           </Link>
           .

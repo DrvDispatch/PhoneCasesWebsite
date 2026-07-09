@@ -50,7 +50,7 @@ export default async function AdminSubscribersPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <form action={toggleSubscriber.bind(null, s.id)} className="inline">
-                    <button className="text-accent">{s.active ? "Deactivate" : "Reactivate"}</button>
+                    <button className="text-brand">{s.active ? "Deactivate" : "Reactivate"}</button>
                   </form>
                   <form action={deleteSubscriber.bind(null, s.id)} className="inline">
                     <button className="ml-3 text-danger">Delete</button>

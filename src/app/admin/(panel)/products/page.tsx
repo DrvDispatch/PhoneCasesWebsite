@@ -58,7 +58,7 @@ export default async function AdminProductsPage() {
                   {p.featured && <span className="ml-2 text-accent">★</span>}
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/products/${p.id}/edit`} className="text-accent">
+                  <Link href={`/admin/products/${p.id}/edit`} className="text-brand">
                     Edit
                   </Link>
                   <form action={deleteProduct.bind(null, p.id)} className="inline">

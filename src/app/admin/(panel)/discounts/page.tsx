@@ -66,7 +66,7 @@ export default async function AdminDiscountsPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <form action={togglePromo.bind(null, c.id)} className="inline">
-                    <button className="text-accent">{c.active ? "Disable" : "Enable"}</button>
+                    <button className="text-brand">{c.active ? "Disable" : "Enable"}</button>
                   </form>
                   <form action={deletePromo.bind(null, c.id)} className="inline">
                     <button className="ml-3 text-danger">Delete</button>

@@ -95,7 +95,7 @@ export function CountrySearch() {
       {open && q.trim() && results.length === 0 && (
         <div className="absolute z-20 mt-2 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink-soft shadow-md">
           No match yet — try another spelling, or{" "}
-          <Link href="/shop" className="text-accent underline">
+          <Link href="/shop" className="font-medium text-brand underline">
             browse all regions
           </Link>
           .

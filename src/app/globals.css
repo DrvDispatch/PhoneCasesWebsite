@@ -38,7 +38,7 @@ html {
 
 body {
   margin: 0;
-  font-family: var(--font-body), "Roboto", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-body), "Manrope", ui-sans-serif, system-ui, sans-serif;
   color: var(--color-ink);
   background: var(--color-surface);
   line-height: 1.65;
@@ -47,10 +47,12 @@ body {
 }
 
 h1, h2, h3, h4 {
-  font-family: var(--font-display), "Oswald", ui-sans-serif, system-ui, sans-serif;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  color: var(--color-ink);
+  font-family: var(--font-display), "Sora", ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  /* Inherit the section's colour so headings turn white on dark backgrounds
+     (e.g. the brand-green hero) instead of being forced to dark ink. */
+  color: inherit;
 }
 
 img {
@@ -115,10 +117,10 @@ body {
   }
 
   .font-display {
-    font-family: var(--font-display), "Oswald", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-display), "Sora", ui-sans-serif, system-ui, sans-serif;
   }
   .font-body {
-    font-family: var(--font-body), "Roboto", ui-sans-serif, system-ui, sans-serif;
+    font-family: var(--font-body), "Manrope", ui-sans-serif, system-ui, sans-serif;
   }
 
   .btn {
@@ -191,7 +193,8 @@ body {
     list-style: disc;
   }
   .legal a {
-    color: var(--color-accent);
+    color: var(--color-brand);
     text-decoration: underline;
+    font-weight: 500;
   }
 }

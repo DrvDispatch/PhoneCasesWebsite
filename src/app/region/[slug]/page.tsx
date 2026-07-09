@@ -43,7 +43,7 @@ export default async function RegionPage({ params }: Params) {
 
       <section className="bg-brand text-white">
         <div className="container-page py-10 sm:py-12">
-          <nav className="text-sm text-white/60">
+          <nav className="text-sm text-white/75">
             <Link href="/shop" className="hover:text-white">
               Shop
             </Link>{" "}

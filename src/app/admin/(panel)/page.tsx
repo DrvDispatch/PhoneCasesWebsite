@@ -56,7 +56,7 @@ export default async function AdminDashboard() {
         <section className="card p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg">Recent orders</h2>
-            <Link href="/admin/orders" className="text-sm text-accent">
+            <Link href="/admin/orders" className="text-sm text-brand">
               All →
             </Link>
           </div>
@@ -75,7 +75,7 @@ export default async function AdminDashboard() {
                 {recentOrders.map((o) => (
                   <tr key={o.id} className="border-t border-line-soft">
                     <td className="py-2">
-                      <Link href={`/admin/orders/${o.id}`} className="text-accent">
+                      <Link href={`/admin/orders/${o.id}`} className="text-brand">
                         {o.number}
                       </Link>
                     </td>
@@ -96,7 +96,7 @@ export default async function AdminDashboard() {
             <ul className="mt-3 space-y-2 text-sm">
               {lowStock.map((p) => (
                 <li key={p.id} className="flex justify-between">
-                  <Link href={`/admin/products/${p.id}/edit`} className="text-accent">
+                  <Link href={`/admin/products/${p.id}/edit`} className="text-brand">
                     {p.name}
                   </Link>
                   <span className="text-danger">{p.stock} left</span>

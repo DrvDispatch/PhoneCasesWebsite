@@ -35,7 +35,7 @@ export default async function AdminPagesPage() {
                 <tr key={p.id} className="border-t border-line-soft">
                   <td className="px-4 py-3 font-medium">{p.title}</td>
                   <td className="px-4 py-3">
-                    <a href={url} target="_blank" rel="noreferrer" className="text-accent">
+                    <a href={url} target="_blank" rel="noreferrer" className="text-brand">
                       {url}
                     </a>
                   </td>
@@ -45,7 +45,7 @@ export default async function AdminPagesPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <Link href={`/admin/pages/${p.id}/edit`} className="text-accent">
+                    <Link href={`/admin/pages/${p.id}/edit`} className="text-brand">
                       Edit
                     </Link>
                     {!RESERVED.has(p.slug) && (

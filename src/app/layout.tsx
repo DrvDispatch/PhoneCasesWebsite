@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Oswald, Roboto } from "next/font/google";
+import { Sora, Manrope } from "next/font/google";
 import "./globals.css";
 import { SITE } from "@/lib/site";
 import { env } from "@/lib/env";
@@ -9,16 +9,16 @@ import { SiteFooter } from "@/components/site-footer";
 import { CartDrawer } from "@/components/cart/cart-drawer";
 import { NewsletterPopup } from "@/components/newsletter-popup";
 
-const oswald = Oswald({
+const sora = Sora({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
-const roboto = Roboto({
+const manrope = Manrope({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-body",
   display: "swap",
 });
@@ -57,7 +57,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${oswald.variable} ${roboto.variable}`}>
+    <html lang="en" className={`${sora.variable} ${manrope.variable}`}>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

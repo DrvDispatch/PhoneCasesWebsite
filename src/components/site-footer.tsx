@@ -64,7 +64,7 @@ export function SiteFooter() {
       </div>
 
       <div className="border-t border-white/10">
-        <p className="container-page py-5 text-center text-xs text-white/55">
+        <p className="container-page py-5 text-center text-xs text-white/65">
           © {year} {SITE.name}. All rights reserved.
         </p>
       </div>
