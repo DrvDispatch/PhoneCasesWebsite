@@ -61,6 +61,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ reply, actions });
   } catch (err) {
     logger.error({ err }, "assistant plan failed");
+    const msg = String((err as Error)?.message ?? "");
+    if (msg.includes("429") || /rate limit|exhausted|busy/i.test(msg)) {
+      return NextResponse.json(
+        { error: "The AI is busy right now (rate limit) — wait a few seconds and try again." },
+        { status: 429 },
+      );
+    }
     return NextResponse.json({ error: "The assistant hit an error. Please try again." }, { status: 500 });
   }
 }

@@ -42,16 +42,26 @@ export async function callGemini(opts: {
   };
   if (opts.tools) body.tools = opts.tools;
 
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const j = (await res.json()) as {
+  type VertexResponse = {
     candidates?: Array<{ content?: { parts?: Array<{ text?: string; functionCall?: { name: string; args?: Record<string, unknown> } }> } }>;
     error?: { message?: string };
   };
-  if (!res.ok) throw new Error(`Vertex ${res.status}: ${j?.error?.message ?? "error"}`);
+  // Retry transient rate-limit / unavailable responses (Vertex quota is modest).
+  let j: VertexResponse = {};
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if ((res.status === 429 || res.status === 503) && attempt < 2) {
+      await new Promise((r) => setTimeout(r, 1200 * (attempt + 1)));
+      continue;
+    }
+    j = (await res.json()) as VertexResponse;
+    if (!res.ok) throw new Error(`Vertex ${res.status}: ${j?.error?.message ?? "error"}`);
+    break;
+  }
 
   const parts = j.candidates?.[0]?.content?.parts ?? [];
   const text = parts
