@@ -33,3 +33,6 @@ yarn-error.log*
 /SERVER_ACCESS.md
 *.local.md
 globecase_contabo*
+
+# Google Cloud service account key — SECRET, lives only on the server
+/gcp-key.json

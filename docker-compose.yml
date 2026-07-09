@@ -50,6 +50,8 @@ services:
     # Persist admin image uploads across rebuilds.
     volumes:
       - uploads:/app/public/uploads
+      # Vertex AI service account for the AI assistant (read-only; not in git).
+      - ./gcp-key.json:/app/gcp-key.json:ro
     # Bound to localhost only; the public entrypoint is Nginx (proxy profile).
     ports:
       - "127.0.0.1:3000:3000"

@@ -42,7 +42,18 @@ export const env = {
   ownerEmail: optional("OWNER_EMAIL"),
 
   geminiApiKey: optional("GEMINI_API_KEY"),
+
+  // --- AI assistant (Vertex AI / Gemini via service account) ---
+  gcpProject: optional("GCP_PROJECT_ID"),
+  gcpLocation: optional("GCP_LOCATION", "us-central1"),
+  gcpModel: optional("GCP_MODEL", "gemini-2.5-flash"),
+  googleCredentials: optional("GOOGLE_APPLICATION_CREDENTIALS"),
 };
+
+/** True when the Vertex AI assistant is configured (project + credentials). */
+export function isAiConfigured(): boolean {
+  return Boolean(env.gcpProject && env.googleCredentials);
+}
 
 /** True when SMTP relay credentials are present. */
 export function isEmailConfigured(): boolean {
