@@ -1,11 +1,13 @@
 import Link from "next/link";
 import Image from "next/image";
-import { getRegions, getFeaturedProducts, getReviewStats, getReviewPhotos } from "@/lib/queries";
+import { getRegions, getFeaturedProducts, getReviewStats, getReviewFaces } from "@/lib/queries";
 import { getSettings, SETTING_KEYS, parseUrlList } from "@/lib/settings";
 import { RegionCard } from "@/components/region-card";
 import { ProductCard } from "@/components/product-card";
 import { TrustBadges } from "@/components/trust-badges";
 import { HomeReviews } from "@/components/home-reviews";
+import { NewsletterBand } from "@/components/newsletter-band";
+import { PaymentTrustBar } from "@/components/payment-trust-bar";
 import { CountrySearch } from "@/components/country-search";
 import { StoreJsonLd, SiteJsonLd } from "@/components/seo/json-ld";
 
@@ -17,7 +19,7 @@ export default async function HomePage() {
     getRegions(),
     getFeaturedProducts(8),
     getReviewStats(),
-    getReviewPhotos(5),
+    getReviewFaces(5),
     getSettings([SETTING_KEYS.homeReviewPhotos, SETTING_KEYS.googleMapsUrl]),
   ]);
 
@@ -146,19 +148,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Reviews teaser */}
-      <section className="bg-brand-dark py-12 text-white sm:py-14">
-        <div className="container-page text-center">
-          <p className="font-display text-2xl text-accent">★★★★★</p>
-          <h2 className="mt-2 font-display text-2xl uppercase tracking-wide">Loved worldwide</h2>
-          <p className="mx-auto mt-2 max-w-lg text-sm text-white/75 sm:text-base">
-            Customers across Europe and beyond trust GlobeCase for quality prints and fast delivery.
-          </p>
-          <Link href="/reviews" className="btn btn-primary mt-5">
-            Read customer reviews
-          </Link>
-        </div>
-      </section>
+      {/* Subscribe band + payment/guarantee trust bar (#22) */}
+      <NewsletterBand />
+      <PaymentTrustBar />
     </>
   );
 }

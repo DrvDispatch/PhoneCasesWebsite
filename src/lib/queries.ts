@@ -115,3 +115,23 @@ export async function getReviewPhotos(take = 5): Promise<string[]> {
   }
   return [...new Set(urls)].slice(0, take);
 }
+
+/**
+ * Round "faces" for the home review counter (#21): reviewer profile photos
+ * first (they read as real people), then attached case photos, deduped.
+ */
+export async function getReviewFaces(take = 5): Promise<string[]> {
+  const reviews = await prisma.review.findMany({
+    where: { approved: true },
+    orderBy: { createdAt: "desc" },
+    select: { avatarUrl: true, photos: true, imageUrl: true },
+  });
+  const avatars: string[] = [];
+  const photos: string[] = [];
+  for (const r of reviews) {
+    if (r.avatarUrl) avatars.push(r.avatarUrl);
+    for (const p of r.photos) photos.push(p);
+    if (r.imageUrl) photos.push(r.imageUrl);
+  }
+  return [...new Set([...avatars, ...photos])].slice(0, take);
+}
