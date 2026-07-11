@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getProductBySlug, getAllActiveProducts } from "@/lib/queries";
+import {
+  getProductBySlug,
+  getAllActiveProducts,
+  getReviewStats,
+  getApprovedReviews,
+} from "@/lib/queries";
 import { ProductImage } from "@/components/product-image";
 import { formatMoney } from "@/lib/money";
 import { AddToCart } from "@/components/add-to-cart";
 import { RelatedProducts } from "@/components/related-products";
+import { RatingBadge, ReviewCard, Stars } from "@/components/reviews";
 import { ProductJsonLd, BreadcrumbJsonLd } from "@/components/seo/json-ld";
 import { TRUST_BADGES } from "@/lib/site";
 import { TRUST_ICONS, IconTag } from "@/components/icons";
@@ -38,7 +44,13 @@ export default async function ProductPage({ params }: Params) {
 
   const inStock = product.stock === null || product.stock > 0;
 
-  const others = (await getAllActiveProducts())
+  const [othersAll, reviewStats, reviews] = await Promise.all([
+    getAllActiveProducts(),
+    getReviewStats(),
+    getApprovedReviews(6),
+  ]);
+
+  const others = othersAll
     .filter((p) => p.slug !== product.slug)
     .slice(0, 12)
     .map((p) => ({
@@ -64,6 +76,7 @@ export default async function ProductPage({ params }: Params) {
         priceCents={product.priceCents}
         currency={product.currency}
         inStock={inStock}
+        rating={{ average: reviewStats.average, count: reviewStats.count }}
       />
       <BreadcrumbJsonLd
         items={[
@@ -101,6 +114,11 @@ export default async function ProductPage({ params }: Params) {
               {product.region.name}
             </span>
             <h1 className="mt-1 font-display text-3xl md:text-4xl">{product.name}</h1>
+            {reviewStats.count > 0 && (
+              <div className="mt-2">
+                <RatingBadge average={reviewStats.average} count={reviewStats.count} href="#reviews" />
+              </div>
+            )}
             <p className="mt-3 text-2xl font-semibold text-brand">
               {formatMoney(product.priceCents, product.currency)}
             </p>
@@ -149,6 +167,35 @@ export default async function ProductPage({ params }: Params) {
           </div>
         </div>
       </div>
+
+      {reviews.length > 0 && (
+        <section id="reviews" className="border-t border-line bg-surface-alt scroll-mt-20">
+          <div className="container-page py-10 sm:py-14">
+            <div className="mb-6 text-center">
+              <h2 className="font-display text-2xl uppercase tracking-wide sm:text-3xl">
+                Loved by customers
+              </h2>
+              <div className="mt-2 flex items-center justify-center gap-2">
+                <Stars rating={Math.round(reviewStats.average)} className="h-5 w-5" />
+                <span className="text-sm text-ink-soft">
+                  <strong className="text-ink">{reviewStats.average.toFixed(1)}</strong> ·{" "}
+                  {reviewStats.count} Google reviews
+                </span>
+              </div>
+            </div>
+            <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+              {reviews.map((r) => (
+                <ReviewCard key={r.id} review={r} />
+              ))}
+            </div>
+            <div className="mt-6 text-center">
+              <Link href="/reviews" className="btn btn-outline text-sm">
+                Read all reviews
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
 
       <RelatedProducts
         products={others}

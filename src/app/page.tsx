@@ -22,9 +22,7 @@ export default async function HomePage() {
   ]);
 
   const settingPhotos = parseUrlList(settings[SETTING_KEYS.homeReviewPhotos]);
-  const reviewImages = settingPhotos.length
-    ? settingPhotos
-    : reviewPhotos.map((r) => r.imageUrl).filter((u): u is string => Boolean(u));
+  const reviewImages = settingPhotos.length ? settingPhotos : reviewPhotos;
   const mapsUrl = settings[SETTING_KEYS.googleMapsUrl] || null;
 
   return (

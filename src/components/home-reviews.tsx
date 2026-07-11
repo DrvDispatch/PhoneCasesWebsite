@@ -25,7 +25,7 @@ export function HomeReviews({
         </div>
         <p className="mt-2 text-sm text-ink-soft">
           <strong className="text-ink">{average.toFixed(1)}/5</strong>
-          {count > 0 ? ` from ${count}+ happy customers` : ""}
+          {count > 0 ? ` from ${count} Google reviews` : ""}
         </p>
 
         {photos.length > 0 && (

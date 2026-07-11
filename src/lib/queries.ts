@@ -101,12 +101,17 @@ export async function getReviewStats(): Promise<{ count: number; average: number
   return { count, average: agg._avg.rating ?? 5 };
 }
 
-/** Approved reviews that have a photo, for the home strip (#21). */
-export function getReviewPhotos(take = 5) {
-  return prisma.review.findMany({
-    where: { approved: true, imageUrl: { not: null } },
+/** Flattened reviewer-attached photos, newest first — for the home strip (#21). */
+export async function getReviewPhotos(take = 5): Promise<string[]> {
+  const reviews = await prisma.review.findMany({
+    where: { approved: true },
     orderBy: { createdAt: "desc" },
-    take,
-    select: { id: true, imageUrl: true, author: true },
+    select: { photos: true, imageUrl: true },
   });
+  const urls: string[] = [];
+  for (const r of reviews) {
+    for (const p of r.photos) urls.push(p);
+    if (r.imageUrl) urls.push(r.imageUrl);
+  }
+  return [...new Set(urls)].slice(0, take);
 }

@@ -74,6 +74,7 @@ export function ProductJsonLd({
   priceCents,
   currency,
   inStock = true,
+  rating,
 }: {
   name: string;
   description: string;
@@ -82,6 +83,7 @@ export function ProductJsonLd({
   priceCents: number;
   currency: string;
   inStock?: boolean;
+  rating?: { average: number; count: number };
 }) {
   return (
     <JsonLd
@@ -92,6 +94,17 @@ export function ProductJsonLd({
         description,
         image: image ? [image] : [`${SITE_URL}/brand/hero.png`],
         brand: { "@type": "Brand", name: SITE.name },
+        ...(rating && rating.count > 0
+          ? {
+              aggregateRating: {
+                "@type": "AggregateRating",
+                ratingValue: rating.average.toFixed(1),
+                reviewCount: rating.count,
+                bestRating: 5,
+                worstRating: 1,
+              },
+            }
+          : {}),
         offers: {
           "@type": "Offer",
           url: `${SITE_URL}/product/${slug}`,

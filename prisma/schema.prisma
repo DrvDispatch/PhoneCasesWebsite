@@ -161,6 +161,12 @@ model Review {
   productSlug String?
   /// Optional photo (e.g. from a Google review) (#11/#21).
   imageUrl    String?
+  /// Reviewer profile picture (e.g. Google avatar).
+  avatarUrl   String?
+  /// Photos the reviewer attached.
+  photos      String[] @default([])
+  /// Display date label like "a year ago" (from the source).
+  dateLabel   String?
   approved    Boolean  @default(false)
   createdAt   DateTime @default(now())
 
