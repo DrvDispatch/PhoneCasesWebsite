@@ -75,6 +75,9 @@ services:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - ./deploy/certbot/conf:/etc/letsencrypt:ro
       - ./deploy/certbot/www:/var/www/certbot:ro
+      # User uploads (product images, review media) — served directly by Nginx,
+      # since the Next standalone server does not serve runtime-added files.
+      - uploads:/var/www/uploads:ro
 
   # ---- maintenance mode: themed "back soon" page; app + db stay stopped ----
   # Enable : docker compose --profile maintenance up -d maintenance

@@ -71,20 +71,9 @@ export type ReviewItem = {
   createdAt?: Date | string;
 };
 
-function relDate(d?: Date | string): string {
-  if (!d) return "";
-  const t = typeof d === "string" ? new Date(d) : d;
-  const days = Math.floor((Date.now() - t.getTime()) / 86_400_000);
-  if (days < 45) return "recently";
-  const months = Math.floor(days / 30);
-  if (months < 12) return `${months} months ago`;
-  const years = Math.floor(days / 365);
-  return `${years} year${years > 1 ? "s" : ""} ago`;
-}
-
 /** A Google-style review card: avatar, name, stars, date, text, attached photos. */
 export function ReviewCard({ review }: { review: ReviewItem }) {
-  const date = review.dateLabel || relDate(review.createdAt);
+  const date = review.dateLabel?.trim() || "";
   return (
     <figure className="card flex h-full flex-col p-5">
       <div className="flex items-center gap-3">
