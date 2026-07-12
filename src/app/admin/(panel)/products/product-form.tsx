@@ -240,7 +240,7 @@ export function ProductForm({
         <MultiImageField
           name="gallery"
           label="Gallery photos (extra images)"
-          hint="Optional additional product photos."
+          hint="Shown in a swipeable gallery on the product page, after the main image. Pick several at once; reorder with ‹ ›."
           initial={values.gallery ?? []}
           max={8}
         />

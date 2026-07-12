@@ -7,7 +7,7 @@ import {
   getReviewStats,
   getApprovedReviews,
 } from "@/lib/queries";
-import { ProductImage } from "@/components/product-image";
+import { ProductGallery } from "@/components/product-gallery";
 import { formatMoney } from "@/lib/money";
 import { AddToCart } from "@/components/add-to-cart";
 import { RelatedProducts } from "@/components/related-products";
@@ -43,6 +43,10 @@ export default async function ProductPage({ params }: Params) {
   if (!product) notFound();
 
   const inStock = product.stock === null || product.stock > 0;
+  // Main image first, then gallery photos — deduped — for the product gallery (#6).
+  const galleryImages = [
+    ...new Set([product.image, ...product.gallery].filter(Boolean) as string[]),
+  ];
 
   const [othersAll, reviewStats, reviews] = await Promise.all([
     getAllActiveProducts(),
@@ -100,14 +104,7 @@ export default async function ProductPage({ params }: Params) {
         </nav>
 
         <div className="grid gap-10 md:grid-cols-2">
-          <ProductImage
-            src={product.image}
-            alt={product.name}
-            sizes="(max-width: 768px) 100vw, 560px"
-            priority
-            boxClassName="aspect-square rounded-2xl border border-line"
-            appearance={product}
-          />
+          <ProductGallery images={galleryImages} alt={product.name} appearance={product} />
 
           <div>
             <span className="text-xs uppercase tracking-wide text-ink-soft">
