@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useCart } from "@/components/cart/cart-context";
+import { isUpload } from "@/components/product-image";
 import { PHONE_BRANDS } from "@/lib/phone-models";
 
 type Props = {
@@ -70,7 +71,14 @@ export function AddToCart({ product, designImages }: Props) {
                     : "border-line hover:border-ink-soft"
                 }`}
               >
-                <Image src={src} alt={`Design ${i + 1}`} fill sizes="120px" className="object-contain p-1" />
+                <Image
+                  src={src}
+                  alt={`Design ${i + 1}`}
+                  fill
+                  sizes="120px"
+                  unoptimized={isUpload(src)}
+                  className="object-contain p-1"
+                />
                 <span className="absolute left-1 top-1 rounded bg-white/85 px-1 text-[10px] font-semibold text-ink">
                   {i + 1}
                 </span>

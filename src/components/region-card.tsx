@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
+import { isUpload } from "@/components/product-image";
 
 type Props = {
   slug: string;
@@ -21,6 +22,7 @@ export function RegionCard({ slug, name, blurb, image, count }: Props) {
           alt={`${name} phone cases`}
           fill
           sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 300px"
+          unoptimized={isUpload(image)}
           className="object-contain p-3 transition duration-300 group-hover:scale-105"
         />
       </div>

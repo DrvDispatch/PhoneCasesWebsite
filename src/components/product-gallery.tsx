@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { appearanceStyle, type ImageAppearance } from "@/components/product-image";
+import { appearanceStyle, isUpload, type ImageAppearance } from "@/components/product-image";
 import { IconChevronLeft, IconChevronRight } from "@/components/icons";
 
 /**
@@ -65,6 +65,7 @@ export function ProductGallery({
         fill
         sizes="(max-width: 768px) 100vw, 560px"
         priority
+        unoptimized={isUpload(pics[at])}
         style={appearanceStyle(appearance)}
       />
       {count > 1 && (
@@ -126,7 +127,14 @@ export function ProductGallery({
             }`}
             style={{ background: bg }}
           >
-            <Image src={src} alt="" fill sizes="64px" className="object-contain p-0.5" />
+            <Image
+              src={src}
+              alt=""
+              fill
+              sizes="64px"
+              unoptimized={isUpload(src)}
+              className="object-contain p-0.5"
+            />
           </button>
         ))}
       </div>

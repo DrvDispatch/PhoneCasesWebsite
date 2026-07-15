@@ -6,6 +6,19 @@ export type ImageAppearance = {
   imageBg?: string | null; // hex/color
 };
 
+/**
+ * True for admin-uploaded images (mounted volume, served directly by Nginx).
+ *
+ * These must skip Next's image optimizer: the standalone server only serves
+ * `public/` files that existed when it started, so the optimizer's own fetch of
+ * a runtime upload 404s and it returns "The requested resource isn't a valid
+ * image". Nothing is lost — /api/admin/upload already re-encodes uploads to
+ * webp at <=1400px.
+ */
+export function isUpload(src?: string | null): boolean {
+  return !!src && src.startsWith("/uploads/");
+}
+
 /** The CSS applied to the <img> to honour a product's appearance settings. */
 export function appearanceStyle(a?: ImageAppearance): React.CSSProperties {
   const objectFit = a?.imageFit === "cover" ? "cover" : "contain";
@@ -41,6 +54,7 @@ export function ProductImage({
         fill
         sizes={sizes}
         priority={priority}
+        unoptimized={isUpload(src)}
         style={appearanceStyle(appearance)}
       />
     </div>
